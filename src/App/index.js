@@ -14,6 +14,7 @@ import ToggleButtonGroup from 'react-bootstrap/ToggleButtonGroup';
 import Navbar from 'react-bootstrap/Navbar';
 import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
+import Badge from 'react-bootstrap/Badge';
 
 import { MdLineStyle, MdAlarmAdd, MdAlarm, MdSkipNext, MdCheck, MdAddCircleOutline } from 'react-icons/md';
 
@@ -40,7 +41,11 @@ class App extends React.Component {
     constructor(props) {
         super(props);
     
-        this.state = { authUser: props.firebase.emptyUser, list: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] };
+        this.state = { authUser: props.firebase.emptyUser, tasks: [], dirtylist: {} };
+    }
+
+    onTaskListUpdate = (list) => {
+        this.setState({ tasks: list });
     }
 
     // Listen to the Firebase Auth state and set the local state.
@@ -49,12 +54,43 @@ class App extends React.Component {
             (user) => this.setState({ authUser: user })
         );
 
-        
+        this.props.firebase.registerTaskListUpdate(this.onTaskListUpdate);       
     }
     
     // Make sure we un-register Firebase observers when the component unmounts.
     componentWillUnmount() {
         this.unregisterAuthObserver();
+    }
+
+    onInputChange = (event, index) => {
+
+        var name = null;
+        const value = event.target.value;
+        const pos = event.target.name.indexOf('-');
+        if (pos != -1) {
+            name = event.target.name.substr(0, pos);
+        }
+
+        if (!name) return;
+
+
+        // https://www.robinwieruch.de/react-state-array-add-update-remove/
+        // terrified of performance hit though....
+        this.setState(state => {
+            const tasks = state.tasks.map((item, i) => {
+                if (i == index) {
+                    item[name] = value;
+                }
+
+                return item;
+            });
+
+            return tasks;
+        });
+    }
+
+    onBlur = (event) => {
+        console.log(event);
     }
 
     render() {
@@ -73,7 +109,7 @@ class App extends React.Component {
             <div className="w-100 clearfix">
                 <Navbar.Brand><MdLineStyle className="mb-1 mr-2" size={32} />Grabtangle</Navbar.Brand>
                 <Navbar.Text className="float-right">
-                    Hi, <abbr onClick={(e) => this.props.firebase.auth.signOut() }>{this.state.authUser.displayName}</abbr>
+                    Hi, <a onClick={(e) => this.props.firebase.signOut() }>{this.state.authUser.displayName}</a>
                 </Navbar.Text>                
                 <ButtonToolBar className="mt-1 d-flex flex-column">
                     <ToggleButtonGroup type="radio" name="filter">
@@ -86,17 +122,19 @@ class App extends React.Component {
             </div>
             </Navbar>
 
-               <Accordion defaultActiveKey="0" className="m-2">
-                    <Card key="0">
-                        <Accordion.Toggle as={Card.Header} eventKey="0">
-                        Click me - "0"
+               <Accordion className="m-2">
+                { this.state.tasks.map((task,index) => (
+                    <Card key={task.id}>
+                        <Accordion.Toggle as={Card.Header} eventKey={task.id}>
+                        <Card.Title>{task.topic} <Badge className="float-right" variant="primary">{task.due.getDate() + "." + task.due.getMonth() + "." + task.due.getFullYear()}</Badge></Card.Title>
+                        <Card.Subtitle className="text-truncate">{task.action}</Card.Subtitle> 
                         </Accordion.Toggle>
-                        <Accordion.Collapse eventKey="0">
+                        <Accordion.Collapse eventKey={task.id}>
                             <Card.Body className="clearfix">
-                                <Form>
+                                <Form onBlur={(e) => this.onBlur(e)}>
                                     <Form.Group controlId="control0">
-                                        <Form.Control className="mb-1" type="text" />
-                                        <Form.Control as="textarea" rows="3" />
+                                        <Form.Control name={"topic-" + index} className="mb-1" type="text" value={task.topic} onChange={(e) => this.onInputChange(e, index)} />
+                                        <Form.Control name={"action-" + index} as="textarea" rows="3" value={task.action} onChange={(e) => this.onInputChange(e, index)} />
                                     </Form.Group>
                                 </Form>
                                 <div className="float-right">
@@ -107,29 +145,7 @@ class App extends React.Component {
                             </Card.Body>
                         </Accordion.Collapse>
                     </Card>
-                { this.state.list.map((num) => (
-                    <Card key={num}>
-                        <Accordion.Toggle as={Card.Header} eventKey={num}>
-                        Click me - {num}
-                        </Accordion.Toggle>
-                        <Accordion.Collapse eventKey={num}>
-                            <Card.Body className="clearfix">
-                                <Form>
-                                    <Form.Group controlId="control0">
-                                        <Form.Control className="mb-1" type="text" />
-                                        <Form.Control as="textarea" rows="3" />
-                                    </Form.Group>
-                                </Form>
-                                <div className="float-right">
-                                    <Button className="mr-2"><MdSkipNext size={28} /></Button>
-                                    <Button className="mr-2" variant="warning"><MdAlarm size={28} /></Button>
-                                    <Button variant="success"><MdCheck size={28} /></Button>
-                                </div>
-                            </Card.Body>
-                        </Accordion.Collapse>
-                    </Card>
-                )
-                )}
+                )) }
             </Accordion>
         </Container> 
         );

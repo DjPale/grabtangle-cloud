@@ -11,14 +11,18 @@ const config = {
     appId: process.env.REACT_APP_APP_ID
   };
 
-  class Firebase {
-      constructor() {
-          app.initializeApp(config);
+class Firebase {
+    constructor() {
+        app.initializeApp(config);
 
-          this.auth = app.auth();
+        this.auth = app.auth();
 
-          this.emptyUser = null;
-      }
-  }
+        this.emptyUser = null;
+    }
 
-  export default Firebase;
+    signOut = () => {  
+        this.auth.signOut();
+    }
+}
+
+export default Firebase;
