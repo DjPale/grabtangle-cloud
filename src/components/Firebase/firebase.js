@@ -17,7 +17,7 @@ const config = {
 
           this.auth = app.auth();
 
-          this.emptyUser = null
+          this.emptyUser = null;
       }
   }
 

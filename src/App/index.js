@@ -15,7 +15,7 @@ import Navbar from 'react-bootstrap/Navbar';
 import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
 
-import { MdLineStyle, MdAlarmAdd, MdAlarm, MdEdit, MdSkipNext, MdCheck } from 'react-icons/md';
+import { MdLineStyle, MdAlarmAdd, MdAlarm, MdSkipNext, MdCheck, MdAddCircleOutline } from 'react-icons/md';
 
 class App extends React.Component {
     uiConfig = {
@@ -48,6 +48,8 @@ class App extends React.Component {
         this.unregisterAuthObserver = this.props.firebase.auth.onAuthStateChanged(
             (user) => this.setState({ authUser: user })
         );
+
+        
     }
     
     // Make sure we un-register Firebase observers when the component unmounts.
@@ -66,7 +68,7 @@ class App extends React.Component {
             );
         }
         return (
-        <div>
+        <Container>
             <Navbar bg="light" sticky="top">
             <div className="w-100 clearfix">
                 <Navbar.Brand><MdLineStyle className="mb-1 mr-2" size={32} />Grabtangle</Navbar.Brand>
@@ -78,6 +80,7 @@ class App extends React.Component {
                         <ToggleButton value="today" variant="success" className="w-100">Today</ToggleButton>
                         <ToggleButton value="week" variant="primary" className="w-100">Week</ToggleButton>
                         <ToggleButton value="all" variant="info" className="w-100">All</ToggleButton>
+                        <Button variant="secondary" className="w-100"><MdAddCircleOutline size={24}/></Button>
                     </ToggleButtonGroup>
                 </ButtonToolBar>
             </div>
@@ -91,16 +94,16 @@ class App extends React.Component {
                         <Accordion.Collapse eventKey="0">
                             <Card.Body className="clearfix">
                                 <Form>
-                                <Form.Group controlId="control0">
-                                    <Form.Control type="text"  />
-                                    <Form.Control type="text"  />
-                                </Form.Group>
+                                    <Form.Group controlId="control0">
+                                        <Form.Control className="mb-1" type="text" />
+                                        <Form.Control as="textarea" rows="3" />
+                                    </Form.Group>
                                 </Form>
                                 <div className="float-right">
                                     <Button className="mr-2"><MdSkipNext size={28} /></Button>
                                     <Button className="mr-2" variant="warning"><MdAlarm size={28} /></Button>
-                                    <Button  variant="success"><MdCheck size={28} /></Button>
-                                    </div>
+                                    <Button variant="success"><MdCheck size={28} /></Button>
+                                </div>
                             </Card.Body>
                         </Accordion.Collapse>
                     </Card>
@@ -112,27 +115,24 @@ class App extends React.Component {
                         <Accordion.Collapse eventKey={num}>
                             <Card.Body className="clearfix">
                                 <Form>
-                                <Form.Group controlId={"control" + num}>
-                                    <Form.Control type="text" className="w-25" />
-                                    <Form.Control type="text" className="w-75" />
-                                </Form.Group>
+                                    <Form.Group controlId="control0">
+                                        <Form.Control className="mb-1" type="text" />
+                                        <Form.Control as="textarea" rows="3" />
+                                    </Form.Group>
                                 </Form>
                                 <div className="float-right">
-                                    <Button className="mr-2"><MdAlarmAdd size="lg"/></Button>
-                                    <Button className="mr-2">b2</Button>
-                                    <Button className="mr-2">b3</Button>
-                                    </div>
+                                    <Button className="mr-2"><MdSkipNext size={28} /></Button>
+                                    <Button className="mr-2" variant="warning"><MdAlarm size={28} /></Button>
+                                    <Button variant="success"><MdCheck size={28} /></Button>
+                                </div>
                             </Card.Body>
                         </Accordion.Collapse>
                     </Card>
                 )
                 )}
             </Accordion>
-        </div> 
-           
-
+        </Container> 
         );
-
       };
 }
 
