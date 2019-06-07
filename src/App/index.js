@@ -15,8 +15,12 @@ import Navbar from 'react-bootstrap/Navbar';
 import Container from 'react-bootstrap/Container';
 import Form from 'react-bootstrap/Form';
 import Badge from 'react-bootstrap/Badge';
+import Popover from 'react-bootstrap/Popover';
+import Overlay from 'react-bootstrap/Overlay';
 
 import { MdLineStyle, MdAlarmAdd, MdAlarm, MdSkipNext, MdCheck, MdAddCircleOutline } from 'react-icons/md';
+
+import { getDates } from '../utils/dateutils';
 
 class App extends React.Component {
     uiConfig = {
@@ -41,7 +45,14 @@ class App extends React.Component {
     constructor(props) {
         super(props);
     
-        this.state = { authUser: props.firebase.emptyUser, tasks: [], dirtylist: {} };
+        this.state = { 
+            authUser: props.firebase.emptyUser, 
+            tasks: [], 
+            dirtylist: {}, 
+            dates: [], 
+            showPostpone: false, 
+            targetPostpone: null 
+        };
     }
 
     onTaskListUpdate = (list) => {
@@ -55,6 +66,8 @@ class App extends React.Component {
         );
 
         this.props.firebase.registerTaskListUpdate(this.onTaskListUpdate);       
+
+        this.setState({dates: getDates()});
     }
     
     // Make sure we un-register Firebase observers when the component unmounts.
@@ -63,11 +76,10 @@ class App extends React.Component {
     }
 
     onInputChange = (event, index) => {
-
         var name = null;
         const value = event.target.value;
         const pos = event.target.name.indexOf('-');
-        if (pos != -1) {
+        if (pos !== -1) {
             name = event.target.name.substr(0, pos);
         }
 
@@ -78,7 +90,7 @@ class App extends React.Component {
         // terrified of performance hit though....
         this.setState(state => {
             const tasks = state.tasks.map((item, i) => {
-                if (i == index) {
+                if (i === index) {
                     item[name] = value;
                 }
 
@@ -91,6 +103,38 @@ class App extends React.Component {
 
     onBlur = (event) => {
         console.log(event);
+        this.setState({ showPostpone: false });
+    }
+
+    onPostponeButtonClick = (event) => {
+        this.setState({ showPostpone: !this.state.showPostpone, targetPostpone: event.currentTarget });
+    }
+
+    onPostpone = (event, date) => {
+        var name = this.state.targetPostpone.name;
+        const pos = name.indexOf('-');
+        if (pos !== -1) {
+            name = name.substr(pos + 1);
+        }
+        else {
+            return;
+        }
+
+        var index = Number.parseInt(name);
+
+        this.setState(state => {
+            const tasks = state.tasks.map((item, i) => {
+                if (i === index) {
+                    item.due = date;
+                }
+
+                return item;
+            });
+
+            return tasks;
+        });
+
+        this.setState({ showPostpone: false });
     }
 
     render() {
@@ -122,10 +166,21 @@ class App extends React.Component {
             </div>
             </Navbar>
 
-               <Accordion className="m-2">
-                { this.state.tasks.map((task,index) => (
+            <Overlay show={this.state.showPostpone} target={this.state.targetPostpone} placement="top" container={this} containerPadding={20}>                    
+                <Popover id="postpone-popover" title="Postpone">
+                    <ButtonToolBar className="d-flex flex-column">
+                        {this.state.dates.map((dt, index) => 
+                            <Button key={index} className="mr-1 mb-1" variant="warning" 
+                                onClick={(e) => this.onPostpone(e,dt.date)}>{dt.name}</Button>
+                        )} 
+                    </ButtonToolBar>
+                </Popover>
+            </Overlay>
+                
+            <Accordion className="m-2">
+                { this.state.tasks.map((task, index) => (
                     <Card key={task.id}>
-                        <Accordion.Toggle as={Card.Header} eventKey={task.id}>
+                        <Accordion.Toggle as={Card.Header} eventKey={task.id} onClick={(e) => this.onBlur(e)}>
                         <Card.Title>{task.topic} <Badge className="float-right" variant="primary">{task.due.getDate() + "." + task.due.getMonth() + "." + task.due.getFullYear()}</Badge></Card.Title>
                         <Card.Subtitle className="text-truncate">{task.action}</Card.Subtitle> 
                         </Accordion.Toggle>
@@ -138,9 +193,9 @@ class App extends React.Component {
                                     </Form.Group>
                                 </Form>
                                 <div className="float-right">
-                                    <Button className="mr-2"><MdSkipNext size={28} /></Button>
-                                    <Button className="mr-2" variant="warning"><MdAlarm size={28} /></Button>
-                                    <Button variant="success"><MdCheck size={28} /></Button>
+                                    <Button name={"next-" + index} className="mr-2"><MdSkipNext size={28} /></Button>
+                                    <Button name={"postpone-" + index} className="mr-2" variant="warning" onClick={(e) => this.onPostponeButtonClick(e)}><MdAlarm size={28} /></Button>
+                                    <Button name={"complete-" + index} variant="success"><MdCheck size={28} /></Button>
                                 </div>
                             </Card.Body>
                         </Accordion.Collapse>

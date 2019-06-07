@@ -23,7 +23,7 @@ class FirebaseMock {
     }
 
     fireTaskListUpdate = () => {
-        this.onTaskListUpdate.map((callback) => {
+        this.onTaskListUpdate.forEach((callback) => {
             callback(this.tasks);
         })
     }
