@@ -17,10 +17,11 @@ import Form from 'react-bootstrap/Form';
 import Badge from 'react-bootstrap/Badge';
 import Popover from 'react-bootstrap/Popover';
 import Overlay from 'react-bootstrap/Overlay';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 
 import { MdLineStyle, MdAlarmAdd, MdAlarm, MdSkipNext, MdCheck, MdAddCircleOutline } from 'react-icons/md';
 
-import { getDates } from '../utils/dateutils';
+import { DAY_ADD, alignDate, getDates, toDateString } from '../utils/dateutils';
 
 class App extends React.Component {
     uiConfig = {
@@ -50,6 +51,9 @@ class App extends React.Component {
             tasks: [], 
             dirtylist: {}, 
             dates: [], 
+            addDate: new Date(),
+            addTopic: "",
+            addAction: "",
             showPostpone: false, 
             targetPostpone: null 
         };
@@ -75,22 +79,22 @@ class App extends React.Component {
         this.unregisterAuthObserver();
     }
 
-    onInputChange = (event, index) => {
-        var name = null;
+    onInputChange = (event, task) => {
+        let name = null;
         const value = event.target.value;
         const pos = event.target.name.indexOf('-');
         if (pos !== -1) {
             name = event.target.name.substr(0, pos);
         }
-
-        if (!name) return;
-
-
+        else {
+            return;
+        }
+      
         // https://www.robinwieruch.de/react-state-array-add-update-remove/
         // terrified of performance hit though....
         this.setState(state => {
-            const tasks = state.tasks.map((item, i) => {
-                if (i === index) {
+            const tasks = state.tasks.map((item) => {
+                if (task.id === item.id) {
                     item[name] = value;
                 }
 
@@ -102,8 +106,7 @@ class App extends React.Component {
     }
 
     onBlur = (event) => {
-        console.log(event);
-        this.setState({ showPostpone: false });
+        this.props.firebase.updateTaskList(this.state.tasks);
     }
 
     onPostponeButtonClick = (event) => {
@@ -111,20 +114,21 @@ class App extends React.Component {
     }
 
     onPostpone = (event, date) => {
-        var name = this.state.targetPostpone.name;
+        let name = this.state.targetPostpone.name;
         const pos = name.indexOf('-');
+
+        let key = null;
+
         if (pos !== -1) {
-            name = name.substr(pos + 1);
+            key = name.substr(pos + 1);
         }
         else {
             return;
         }
 
-        var index = Number.parseInt(name);
-
         this.setState(state => {
-            const tasks = state.tasks.map((item, i) => {
-                if (i === index) {
+            const tasks = state.tasks.map((item) => {
+                if (key == item.id) {
                     item.due = date;
                 }
 
@@ -133,8 +137,66 @@ class App extends React.Component {
 
             return tasks;
         });
+    }
 
+    onPostponeButtonBlur = (event) => {
         this.setState({ showPostpone: false });
+    }
+
+    onCompleteButtonClick = (event, task) => {
+        this.props.firebase.completeTask(task.id);
+    }
+
+    onNextActionClick = (event, task) => {
+        this.setState(state => {
+            const tasks = state.tasks.map((item) => {
+                if (task.id === item.id) {
+                    item.action = '';
+                    
+                }
+
+                return item;
+            });
+
+            return tasks;
+        });
+    }
+
+    onNewButtonClick = (event) => {
+        this.props.firebase.newTask(this.state.addTopic, this.state.addAction, this.state.addDate);
+
+        this.setState({ addTopic: "", addAction: "" });
+    }
+
+    onNewDueButtonClick = (event,dateItem) => {
+        this.setState({ addDate: dateItem.date });
+    }
+
+    onNewTopicChange = (event) => {
+        this.setState({ addTopic: event.target.value });
+    }
+
+    onNewActionChange = (event) => {
+        this.setState({ addAction: event.target.value });
+    }
+
+    // TODO: move?
+    dateToVariant = (date) => {
+        let today = alignDate(new Date()).valueOf();
+        let due = alignDate(date).valueOf();
+        let week = (today + 7 * DAY_ADD);
+
+        if (due < today) {
+            return "danger";
+        }
+        else if (due == today) {
+            return "success";
+        }
+        else if (due <= week) {
+            return "primary";
+        }
+
+        return "info";
     }
 
     render() {
@@ -157,10 +219,33 @@ class App extends React.Component {
                 </Navbar.Text>                
                 <ButtonToolBar className="mt-1 d-flex flex-column">
                     <ToggleButtonGroup type="radio" name="filter">
+                        <OverlayTrigger trigger="click" placement="bottom" defaultShow="true" overlay={
+                            <Popover title='Add new task' className="popover-big">
+                                <Form>
+                                    <Form.Group>
+                                        <Form.Label>Topic</Form.Label>
+                                        <Form.Control type="input" onChange={(e) => this.onNewTopicChange(e)} value={this.state.addTopic}></Form.Control>
+                                        <Form.Label className="mt-1">Next action</Form.Label>
+                                        <Form.Control as="textarea" onChange={(e) => this.onNewActionChange(e)} value={this.state.addAction}></Form.Control>
+                                        <Button className="mt-2 mb-1" variant="success" 
+                                            onClick={(e) => this.onNewButtonClick(e)} disabled={this.state.addTopic.length == 0 || this.state.addAction.length == 0}>Add</Button>
+                                        <Badge variant="primary" className="float-right mt-3">{toDateString(this.state.addDate)}</Badge>
+                                        <ButtonToolBar className="d-flex flex-row">
+                                            { this.state.dates.map((dt) => (
+                                                <Button key={dt.name} className="w-50 rounded-pill mt-1" size="sm" variant="primary"
+                                                    onClick={(e) => this.onNewDueButtonClick(e,dt)}>{dt.name}</Button>
+                                            ))
+                                            }
+                                        </ButtonToolBar>
+                                    </Form.Group>
+                                </Form>
+                            </Popover>
+                        }>
+                            <Button variant="secondary" className="w-100"><MdAddCircleOutline size={24}/></Button>
+                        </OverlayTrigger>
                         <ToggleButton value="today" variant="success" className="w-100">Today</ToggleButton>
                         <ToggleButton value="week" variant="primary" className="w-100">Week</ToggleButton>
                         <ToggleButton value="all" variant="info" className="w-100">All</ToggleButton>
-                        <Button variant="secondary" className="w-100"><MdAddCircleOutline size={24}/></Button>
                     </ToggleButtonGroup>
                 </ButtonToolBar>
             </div>
@@ -169,33 +254,40 @@ class App extends React.Component {
             <Overlay show={this.state.showPostpone} target={this.state.targetPostpone} placement="top" container={this} containerPadding={20}>                    
                 <Popover id="postpone-popover" title="Postpone">
                     <ButtonToolBar className="d-flex flex-column">
-                        {this.state.dates.map((dt, index) => 
-                            <Button key={index} className="mr-1 mb-1" variant="warning" 
+                        {this.state.dates.map((dt) => 
+                            <Button key={dt.name} className="mr-1 mb-1" variant="warning" 
                                 onClick={(e) => this.onPostpone(e,dt.date)}>{dt.name}</Button>
                         )} 
                     </ButtonToolBar>
                 </Popover>
             </Overlay>
+
                 
             <Accordion className="m-2">
-                { this.state.tasks.map((task, index) => (
+                { this.state.tasks.map((task) => (
                     <Card key={task.id}>
                         <Accordion.Toggle as={Card.Header} eventKey={task.id} onClick={(e) => this.onBlur(e)}>
-                        <Card.Title>{task.topic} <Badge className="float-right" variant="primary">{task.due.getDate() + "." + task.due.getMonth() + "." + task.due.getFullYear()}</Badge></Card.Title>
+                        <Card.Title>{task.topic} <Badge className="float-right" variant={this.dateToVariant(task.due)}>{toDateString(task.due)}</Badge></Card.Title>
                         <Card.Subtitle className="text-truncate">{task.action}</Card.Subtitle> 
                         </Accordion.Toggle>
                         <Accordion.Collapse eventKey={task.id}>
                             <Card.Body className="clearfix">
                                 <Form onBlur={(e) => this.onBlur(e)}>
                                     <Form.Group controlId="control0">
-                                        <Form.Control name={"topic-" + index} className="mb-1" type="text" value={task.topic} onChange={(e) => this.onInputChange(e, index)} />
-                                        <Form.Control name={"action-" + index} as="textarea" rows="3" value={task.action} onChange={(e) => this.onInputChange(e, index)} />
+                                        <Form.Control name={"topic-" + task.id} className="mb-1" type="text" value={task.topic} 
+                                            onChange={(e) => this.onInputChange(e, task)} />
+                                        <Form.Control name={"action-" + task.id} as="textarea" rows="3" value={task.action} 
+                                            onChange={(e) => this.onInputChange(e, task)} />
                                     </Form.Group>
                                 </Form>
                                 <div className="float-right">
-                                    <Button name={"next-" + index} className="mr-2"><MdSkipNext size={28} /></Button>
-                                    <Button name={"postpone-" + index} className="mr-2" variant="warning" onClick={(e) => this.onPostponeButtonClick(e)}><MdAlarm size={28} /></Button>
-                                    <Button name={"complete-" + index} variant="success"><MdCheck size={28} /></Button>
+                                    <Button name={"next-" + task.id} className="mr-2"
+                                        onClick={(e) => this.onNextActionClick(e,task)}><MdSkipNext size={28} /></Button>
+                                    <Button name={"postpone-" + task.id} className="mr-2" variant="warning" 
+                                        onClick={(e) => this.onPostponeButtonClick(e)}
+                                        onBlur={(e) => this.onPostponeButtonBlur(e)}><MdAlarm size={28} /></Button>
+                                    <Button name={"complete-" + task.id} variant="success"
+                                        onClick={(e) => this.onCompleteButtonClick(e,task)}><MdCheck size={28} /></Button>
                                 </div>
                             </Card.Body>
                         </Accordion.Collapse>

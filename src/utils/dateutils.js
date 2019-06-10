@@ -1,10 +1,12 @@
-const DAY_ADD = 86400000;
+export const DAY_ADD = 86400000;
 
 export const alignDate = (date) => {
     date.setHours(0);
     date.setMinutes(0);
     date.setSeconds(0);
     date.setMilliseconds(0);
+
+    return date;
 }
 
 export const getDates = () => {
@@ -43,8 +45,14 @@ export const getDates = () => {
     dates.push({ name: 'Later in week', date: later });
     //dates.push({ name: 'Weekend', date: weekend });
     dates.push({ name: 'Next week', date: nextweek });
-    //dates.push({ name: 'Mid next week', date: midnextweek });
+    dates.push({ name: 'Mid next week', date: midnextweek });
     dates.push({ name: '2 weeks', date: twoweeks });
 
     return dates;
+}
+
+export const toDateString = (date) => {
+    let day = "0" + date.getDate();
+    let month = "0" + (date.getMonth() + 1);
+    return day.substr(day.length - 2) + "." + month.substr(month.length - 2) + "." + date.getFullYear();
 }

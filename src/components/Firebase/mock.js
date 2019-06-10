@@ -9,8 +9,9 @@ class FirebaseMock {
 
     
         this.tasks = [
-            { id: 0, topic: 'topic1', action: 'actionable item', due: new Date(Date.now()) },
-            { id: 1, topic: 'topic2', action: 'another great actionable item', due: new Date(Date.now()) }
+            { id: 0, topic: 'topic1', action: 'actionable item out of date', due: new Date(Date.now() - 100000000) },
+            { id: 1, topic: 'topic2', action: 'another great actionable item', due: new Date(Date.now() + 100000000) },
+            { id: 2, topic: 'topic2', action: 'actionable belonging to the same topic', due: new Date(Date.now()) }
         ];
 
         this.onTaskListUpdate = [];
@@ -22,26 +23,55 @@ class FirebaseMock {
         callback(this.tasks);
     }
 
+    unregisterTaskListUpdate = () => {
+        console.log("Ignored: unregisterTaskListUpdate");
+    }
+
     fireTaskListUpdate = () => {
         this.onTaskListUpdate.forEach((callback) => {
             callback(this.tasks);
         })
     }
 
-    updateTask = (taskid, newtopic, newaction) => {
-        this.tasks[taskid] = { id: taskid, topic: newtopic, action: newaction };
-     
-        this.fireTaskListUpdate();
+    findTask = (taskid) => {
+        let foundIndex = -1;
+        
+        this.tasks.forEach((task,index) => {
+            if (task.id === taskid) {
+                foundIndex = index;
+            }
+        });
+
+        return foundIndex;
     }
 
-    newTask = (newtopic, newaction) => {
-        this.tasks.push({ id: this.tasks.length, topic: newtopic, action: newaction });
+    updateTask = (taskid, newtopic, newaction) => {
+        let foundIndex = this.findTask(taskid);
+
+        if (foundIndex != -1) {
+            this.tasks[foundIndex] = { id: taskid, topic: newtopic, action: newaction };
+            this.fireTaskListUpdate();
+        }
+    }
+
+    newTask = (newtopic, newaction, duedate) => {
+        this.tasks.push({ id: this.tasks.length, topic: newtopic, action: newaction, due: duedate });
 
         this.fireTaskListUpdate();
     }
 
     completeTask = (taskid) => {
+        let foundIndex = this.findTask(taskid);
 
+        if (foundIndex != -1) {
+            this.tasks.splice(foundIndex, 1);
+            this.fireTaskListUpdate();
+        }
+    }
+
+    updateTaskList = (taskList) => {
+        this.tasks = taskList;
+        this.fireTaskListUpdate();
     }
 
     signOut = () => {
