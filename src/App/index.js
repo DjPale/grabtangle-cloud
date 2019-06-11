@@ -43,13 +43,21 @@ class App extends React.Component {
         }
     }
 
+    filterDefinitions = {
+        today: (task, today) => { return (alignDate(task.due).valueOf() <= today) },
+        week: (task, today) => { return (alignDate(task.due).valueOf() <= (today + (7 * DAY_ADD))) } ,
+        all: () => { return true }
+    }
+
     constructor(props) {
         super(props);
     
         this.state = { 
             authUser: props.firebase.emptyUser, 
-            tasks: [], 
-            dirtylist: {}, 
+            tasks: [],
+            selectedFilter: 'today',
+            filterCounters: {},
+            filteredTasks: [],
             dates: [], 
             addDate: new Date(),
             addTopic: "",
@@ -59,8 +67,37 @@ class App extends React.Component {
         };
     }
 
+    applyFilters = (list, value) => {
+        let today = alignDate(new Date()).valueOf();
+
+        let filterFunc = this.filterDefinitions[value];
+
+        const filteredTasks = list.filter((item) => {
+                return filterFunc(item, today);
+        });
+
+        
+        this.setState({ filteredTasks: filteredTasks });
+    }
+
+
+    updateFilterCounters = (list) => {
+        let today = alignDate(new Date()).valueOf();
+
+        Object.keys(this.filterDefinitions).forEach((key) => {
+            let filterCount = list.reduce((accumulator, task) => {
+                accumulator += (this.filterDefinitions[key](task, today) ? 1 : 0);
+                return accumulator;
+            }, 0);
+
+            this.state.filterCounters[key] = filterCount;
+        });
+    }
+
     onTaskListUpdate = (list) => {
         this.setState({ tasks: list });
+        this.updateFilterCounters(list);
+        this.applyFilters(list, this.state.selectedFilter);
     }
 
     // Listen to the Firebase Auth state and set the local state.
@@ -77,6 +114,11 @@ class App extends React.Component {
     // Make sure we un-register Firebase observers when the component unmounts.
     componentWillUnmount() {
         this.unregisterAuthObserver();
+    }
+
+    onFilterButton = (value) => {
+        this.setState({ selectedFilter: value });
+        this.applyFilters(this.state.tasks, value);
     }
 
     onInputChange = (event, task) => {
@@ -212,15 +254,15 @@ class App extends React.Component {
         return (
         <Container>
             <Navbar bg="light" sticky="top">
-            <div className="w-100 clearfix">
+            <div className="w-100">
                 <Navbar.Brand><MdLineStyle className="mb-1 mr-2" size={32} />Grabtangle</Navbar.Brand>
                 <Navbar.Text className="float-right">
                     Hi, <a onClick={(e) => this.props.firebase.signOut() }>{this.state.authUser.displayName}</a>
                 </Navbar.Text>                
                 <ButtonToolBar className="mt-1 d-flex flex-column">
-                    <ToggleButtonGroup type="radio" name="filter">
-                        <OverlayTrigger trigger="click" placement="bottom" defaultShow="true" overlay={
-                            <Popover title='Add new task' className="popover-big">
+                    <ToggleButtonGroup type="radio" name="filter" value={this.state.selectedFilter} onChange={(value) => this.onFilterButton(value)}>
+                        <OverlayTrigger trigger="click" placement="bottom" overlay={
+                            <Popover title='Add new task'>
                                 <Form>
                                     <Form.Group>
                                         <Form.Label>Topic</Form.Label>
@@ -228,7 +270,8 @@ class App extends React.Component {
                                         <Form.Label className="mt-1">Next action</Form.Label>
                                         <Form.Control as="textarea" onChange={(e) => this.onNewActionChange(e)} value={this.state.addAction}></Form.Control>
                                         <Button className="mt-2 mb-1" variant="success" 
-                                            onClick={(e) => this.onNewButtonClick(e)} disabled={this.state.addTopic.length == 0 || this.state.addAction.length == 0}>Add</Button>
+                                            onClick={(e) => this.onNewButtonClick(e)} 
+                                            disabled={this.state.addTopic.length == 0 || this.state.addAction.length == 0}>Add</Button>
                                         <Badge variant="primary" className="float-right mt-3">{toDateString(this.state.addDate)}</Badge>
                                         <ButtonToolBar className="d-flex flex-row">
                                             { this.state.dates.map((dt) => (
@@ -243,9 +286,15 @@ class App extends React.Component {
                         }>
                             <Button variant="secondary" className="w-100"><MdAddCircleOutline size={24}/></Button>
                         </OverlayTrigger>
-                        <ToggleButton value="today" variant="success" className="w-100">Today</ToggleButton>
-                        <ToggleButton value="week" variant="primary" className="w-100">Week</ToggleButton>
-                        <ToggleButton value="all" variant="info" className="w-100">All</ToggleButton>
+                        <ToggleButton value="today" variant="success" className="w-100">
+                            Today <Badge variant="secondary" pill className="w-auto float-right">{this.state.filterCounters['week']}</Badge>
+                        </ToggleButton>
+                        <ToggleButton value="week" variant="primary" className="w-100">
+                            Week <Badge variant="secondary" pill className="float-right">{this.state.filterCounters['week']}</Badge>
+                        </ToggleButton>
+                        <ToggleButton value="all" variant="info" className="w-100">
+                            All <Badge variant="secondary" pill className="float-right">{this.state.filterCounters['all']}</Badge>
+                        </ToggleButton>
                     </ToggleButtonGroup>
                 </ButtonToolBar>
             </div>
@@ -264,7 +313,7 @@ class App extends React.Component {
 
                 
             <Accordion className="m-2">
-                { this.state.tasks.map((task) => (
+                { this.state.filteredTasks.map((task) => (
                     <Card key={task.id}>
                         <Accordion.Toggle as={Card.Header} eventKey={task.id} onClick={(e) => this.onBlur(e)}>
                         <Card.Title>{task.topic} <Badge className="float-right" variant={this.dateToVariant(task.due)}>{toDateString(task.due)}</Badge></Card.Title>
