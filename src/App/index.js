@@ -19,7 +19,7 @@ import Popover from 'react-bootstrap/Popover';
 import Overlay from 'react-bootstrap/Overlay';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 
-import { MdLineStyle, MdAlarmAdd, MdAlarm, MdSkipNext, MdCheck, MdAddCircleOutline } from 'react-icons/md';
+import { MdLineStyle, MdWarning, MdAlarm, MdSkipNext, MdCheck, MdAddCircleOutline } from 'react-icons/md';
 
 import { DAY_ADD, alignDate, getDates, toDateString } from '../utils/dateutils';
 
@@ -42,6 +42,8 @@ class App extends React.Component {
             }
         }
     }
+
+    warnTaskCount = 20;
 
     filterDefinitions = {
         today: (task, today) => { return (alignDate(task.due).valueOf() <= today) },
@@ -147,7 +149,7 @@ class App extends React.Component {
         });
     }
 
-    onBlur = (event) => {
+    onCardBlur = (event) => {
         this.props.firebase.updateTaskList(this.state.tasks);
     }
 
@@ -241,6 +243,19 @@ class App extends React.Component {
         return "info";
     }
 
+    renderFilterButton = (name, filter, bsVariant) => {
+        let isAboveLimit = (this.state.filterCounters[filter] >= this.warnTaskCount);
+
+        return (
+        <ToggleButton value={filter} variant={bsVariant} className="w-100">
+            {name}
+            <Badge variant={isAboveLimit ? 'warning' : 'secondary'} pill className="float-right">
+                {isAboveLimit ?<MdWarning className="float-right"/> : this.state.filterCounters[filter]}
+            </Badge>
+        </ToggleButton>
+        );
+    }
+
     render() {
         if (!this.state.authUser) {
             return (
@@ -286,16 +301,10 @@ class App extends React.Component {
                         }>
                             <Button variant="secondary" className="w-100"><MdAddCircleOutline size={24}/></Button>
                         </OverlayTrigger>
-                        <ToggleButton value="today" variant="success" className="w-100">
-                            Today <Badge variant="secondary" pill className="w-auto float-right">{this.state.filterCounters['week']}</Badge>
-                        </ToggleButton>
-                        <ToggleButton value="week" variant="primary" className="w-100">
-                            Week <Badge variant="secondary" pill className="float-right">{this.state.filterCounters['week']}</Badge>
-                        </ToggleButton>
-                        <ToggleButton value="all" variant="info" className="w-100">
-                            All <Badge variant="secondary" pill className="float-right">{this.state.filterCounters['all']}</Badge>
-                        </ToggleButton>
-                    </ToggleButtonGroup>
+                        {this.renderFilterButton('Today', 'today', 'success')}
+                        {this.renderFilterButton('Week', 'week', 'primary')}
+                        {this.renderFilterButton('All', 'all', 'info')}
+                   </ToggleButtonGroup>
                 </ButtonToolBar>
             </div>
             </Navbar>
@@ -311,17 +320,16 @@ class App extends React.Component {
                 </Popover>
             </Overlay>
 
-                
             <Accordion className="m-2">
                 { this.state.filteredTasks.map((task) => (
                     <Card key={task.id}>
-                        <Accordion.Toggle as={Card.Header} eventKey={task.id} onClick={(e) => this.onBlur(e)}>
+                        <Accordion.Toggle as={Card.Header} eventKey={task.id} onClick={(e) => this.onCardBlur(e)}>
                         <Card.Title>{task.topic} <Badge className="float-right" variant={this.dateToVariant(task.due)}>{toDateString(task.due)}</Badge></Card.Title>
                         <Card.Subtitle className="text-truncate">{task.action}</Card.Subtitle> 
                         </Accordion.Toggle>
                         <Accordion.Collapse eventKey={task.id}>
                             <Card.Body className="clearfix">
-                                <Form onBlur={(e) => this.onBlur(e)}>
+                                <Form onBlur={(e) => this.onCardBlur(e)}>
                                     <Form.Group controlId="control0">
                                         <Form.Control name={"topic-" + task.id} className="mb-1" type="text" value={task.topic} 
                                             onChange={(e) => this.onInputChange(e, task)} />
