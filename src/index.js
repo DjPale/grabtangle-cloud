@@ -4,12 +4,12 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import * as serviceWorker from './serviceWorker';
 
-import Firebase, { FirebaseContext, FirebaseMock } from './components/Firebase';
+import FirebaseStore, { FirebaseContext, FirebaseMock } from './components/Firebase';
 
 import App from './App';
 
 ReactDOM.render(
-    <FirebaseContext.Provider value={new FirebaseMock()}>
+    <FirebaseContext.Provider value={new FirebaseStore()}>
         <FirebaseContext.Consumer>
             {firebase => <App firebase={firebase} />}
         </FirebaseContext.Consumer>

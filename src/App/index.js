@@ -2,8 +2,6 @@ import React from 'react';
 import StyledFirebaseAuth from 'react-firebaseui/StyledFirebaseAuth';
 import firebase from 'firebase';
 
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
 import JumboTron from 'react-bootstrap/Jumbotron';
 import Accordion from 'react-bootstrap/Accordion';
 import Card from 'react-bootstrap/Card';
@@ -44,6 +42,7 @@ class App extends React.Component {
     }
 
     warnTaskCount = 20;
+    keySeparator = '_';
 
     filterDefinitions = {
         today: (task, today) => { return (alignDate(task.due).valueOf() <= today) },
@@ -82,7 +81,6 @@ class App extends React.Component {
         this.setState({ filteredTasks: filteredTasks });
     }
 
-
     updateFilterCounters = (list) => {
         let today = alignDate(new Date()).valueOf();
 
@@ -104,18 +102,20 @@ class App extends React.Component {
 
     // Listen to the Firebase Auth state and set the local state.
     componentDidMount() {
-        this.unregisterAuthObserver = this.props.firebase.auth.onAuthStateChanged(
-            (user) => this.setState({ authUser: user })
-        );
-
-        this.props.firebase.registerTaskListUpdate(this.onTaskListUpdate);       
-
         this.setState({dates: getDates()});
+
+        this.unregisterAuthObserver = this.props.firebase.auth.onAuthStateChanged(
+            (user) => {
+                this.setState({ authUser: user });
+                this.props.firebase.registerTaskListUpdate(this.onTaskListUpdate, user);       
+            }
+        );
     }
     
     // Make sure we un-register Firebase observers when the component unmounts.
     componentWillUnmount() {
         this.unregisterAuthObserver();
+        this.props.firebase.unregisterTaskListUpdate(this.onTaskListUpdate);
     }
 
     onFilterButton = (value) => {
@@ -126,7 +126,7 @@ class App extends React.Component {
     onInputChange = (event, task) => {
         let name = null;
         const value = event.target.value;
-        const pos = event.target.name.indexOf('-');
+        const pos = event.target.name.indexOf(this.keySeparator);
         if (pos !== -1) {
             name = event.target.name.substr(0, pos);
         }
@@ -140,6 +140,7 @@ class App extends React.Component {
             const tasks = state.tasks.map((item) => {
                 if (task.id === item.id) {
                     item[name] = value;
+                    item.dirty = true;
                 }
 
                 return item;
@@ -149,8 +150,17 @@ class App extends React.Component {
         });
     }
 
-    onCardBlur = (event) => {
-        this.props.firebase.updateTaskList(this.state.tasks);
+    onInputKeyPress = (event, task) => {
+        if (event.key === "Enter") { 
+            event.preventDefault();
+            this.props.firebase.updateTask(task); 
+        }
+    }
+
+    onCardBlur = (event,task) => {
+        if (task.dirty) {
+            this.props.firebase.updateTask(task);
+        }
     }
 
     onPostponeButtonClick = (event) => {
@@ -159,7 +169,7 @@ class App extends React.Component {
 
     onPostpone = (event, date) => {
         let name = this.state.targetPostpone.name;
-        const pos = name.indexOf('-');
+        const pos = name.indexOf(this.keySeparator);
 
         let key = null;
 
@@ -170,7 +180,14 @@ class App extends React.Component {
             return;
         }
 
-        this.setState(state => {
+        this.state.tasks.forEach((task) => {
+            if (task.id == key) {
+                task.due = date;
+                this.props.firebase.updateTask(task);
+            }
+        });
+
+/*         this.setState(state => {
             const tasks = state.tasks.map((item) => {
                 if (key == item.id) {
                     item.due = date;
@@ -180,7 +197,7 @@ class App extends React.Component {
             });
 
             return tasks;
-        });
+        }); */
     }
 
     onPostponeButtonBlur = (event) => {
@@ -189,21 +206,6 @@ class App extends React.Component {
 
     onCompleteButtonClick = (event, task) => {
         this.props.firebase.completeTask(task.id);
-    }
-
-    onNextActionClick = (event, task) => {
-        this.setState(state => {
-            const tasks = state.tasks.map((item) => {
-                if (task.id === item.id) {
-                    item.action = '';
-                    
-                }
-
-                return item;
-            });
-
-            return tasks;
-        });
     }
 
     onNewButtonClick = (event) => {
@@ -250,7 +252,7 @@ class App extends React.Component {
         <ToggleButton value={filter} variant={bsVariant} className="w-100">
             {name}
             <Badge variant={isAboveLimit ? 'warning' : 'secondary'} pill className="float-right">
-                {isAboveLimit ?<MdWarning className="float-right"/> : this.state.filterCounters[filter]}
+                {isAboveLimit ? <MdWarning className="float-right"/> : this.state.filterCounters[filter]}
             </Badge>
         </ToggleButton>
         );
@@ -309,7 +311,7 @@ class App extends React.Component {
             </div>
             </Navbar>
 
-            <Overlay show={this.state.showPostpone} target={this.state.targetPostpone} placement="top" container={this} containerPadding={20}>                    
+            <Overlay show={this.state.showPostpone} target={this.state.targetPostpone} placement="top" containerPadding={20}>                    
                 <Popover id="postpone-popover" title="Postpone">
                     <ButtonToolBar className="d-flex flex-column">
                         {this.state.dates.map((dt) => 
@@ -323,27 +325,27 @@ class App extends React.Component {
             <Accordion className="m-2">
                 { this.state.filteredTasks.map((task) => (
                     <Card key={task.id}>
-                        <Accordion.Toggle as={Card.Header} eventKey={task.id} onClick={(e) => this.onCardBlur(e)}>
-                        <Card.Title>{task.topic} <Badge className="float-right" variant={this.dateToVariant(task.due)}>{toDateString(task.due)}</Badge></Card.Title>
-                        <Card.Subtitle className="text-truncate">{task.action}</Card.Subtitle> 
+                        <Accordion.Toggle as={Card.Header} eventKey={task.id}>
+                            <Card.Title>{task.topic} <Badge className="float-right" variant={this.dateToVariant(task.due)}>{toDateString(task.due)}</Badge></Card.Title>
+                            <Card.Subtitle className="text-truncate">{task.action}</Card.Subtitle> 
                         </Accordion.Toggle>
                         <Accordion.Collapse eventKey={task.id}>
                             <Card.Body className="clearfix">
-                                <Form onBlur={(e) => this.onCardBlur(e)}>
+                                <Form onBlur={(e) => this.onCardBlur(e,task)}>
                                     <Form.Group controlId="control0">
-                                        <Form.Control name={"topic-" + task.id} className="mb-1" type="text" value={task.topic} 
-                                            onChange={(e) => this.onInputChange(e, task)} />
-                                        <Form.Control name={"action-" + task.id} as="textarea" rows="3" value={task.action} 
-                                            onChange={(e) => this.onInputChange(e, task)} />
+                                        <Form.Control name={"topic" + this.keySeparator + task.id} className="mb-1" type="text" value={task.topic} 
+                                            onChange={(e) => this.onInputChange(e, task)}
+                                            onKeyPress={(e) => this.onInputKeyPress(e, task) } />
+                                        <Form.Control name={"action" + this.keySeparator + task.id} as="textarea" rows="3" value={task.action} 
+                                            onChange={(e) => this.onInputChange(e, task)}
+                                            onKeyPress={(e) => {if (e.key === "Enter") { e.preventDefault(); } }} />
                                     </Form.Group>
                                 </Form>
                                 <div className="float-right">
-                                    <Button name={"next-" + task.id} className="mr-2"
-                                        onClick={(e) => this.onNextActionClick(e,task)}><MdSkipNext size={28} /></Button>
-                                    <Button name={"postpone-" + task.id} className="mr-2" variant="warning" 
+                                    <Button name={"postpone" + this.keySeparator + task.id} className="mr-2" variant="warning" 
                                         onClick={(e) => this.onPostponeButtonClick(e)}
                                         onBlur={(e) => this.onPostponeButtonBlur(e)}><MdAlarm size={28} /></Button>
-                                    <Button name={"complete-" + task.id} variant="success"
+                                    <Button name={"complete" + this.keySeparator + task.id} variant="success"
                                         onClick={(e) => this.onCompleteButtonClick(e,task)}><MdCheck size={28} /></Button>
                                 </div>
                             </Card.Body>

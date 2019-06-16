@@ -1,4 +1,5 @@
 import app from 'firebase/app';
+import Firebase from 'firebase';
 import 'firebase/auth';
 
 const config = {
@@ -11,13 +12,96 @@ const config = {
     appId: process.env.REACT_APP_APP_ID
   };
 
-class Firebase {
+class FirebaseStore {
     constructor() {
         app.initializeApp(config);
 
         this.auth = app.auth();
+        this.db = app.database();
 
         this.emptyUser = null;
+
+        
+        this.onTaskListUpdate = [];
+
+        this.tasksRef = null;
+    }
+
+    onListChange = (snapshot) => {
+        const taskListObject = snapshot.val();
+
+        if (!taskListObject) return;
+
+        const taskList = Object.keys(taskListObject).map(key => ({
+            id: key,
+            topic: taskListObject[key].topic,
+            action: taskListObject[key].action,
+            due: new Date(Date.parse(taskListObject[key].due)),
+
+        }));
+
+        console.log("firebase data update!");
+
+        this.fireTaskListUpdate(taskList);
+    }
+
+    fireTaskListUpdate = (taskList) => {
+        this.onTaskListUpdate.forEach((callback) => {
+            callback(taskList);
+        })
+    }
+
+    registerTaskListUpdate = (callback, user) => {
+        this.onTaskListUpdate.push(callback);
+
+        let uid = user.uid;
+
+        if (!this.tasksRef) {
+            this.tasksRef = this.db.ref(`tasks/${uid}`);
+
+            this.tasksRef.once('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    this.db.ref('tasks').set(uid).then(() => this.tasksRef.on('value', this.onListChange));
+                } else {
+                    this.tasksRef.on('value', this.onListChange);
+                }
+            });
+        }
+    }
+
+    unregisterTaskListUpdate = () => {
+        console.log("Ignored: unregisterTaskListUpdate");        
+
+        if (this.onTaskListUpdate.length == 0 && this.tasksRef) {
+            this.tasksRef.off();
+            this.tasksRef = null;
+        }
+    }
+
+    toDatabaseTimestamp = (date) => {
+        return date.toISOString();
+    }
+
+
+    newTask = (newtopic, newaction, duedate) => {
+        this.tasksRef.push({ 
+            created: Firebase.database.ServerValue.TIMESTAMP,
+            topic: newtopic, 
+            action: newaction, 
+            due: this.toDatabaseTimestamp(duedate)
+        });
+    }
+
+    completeTask = (taskid) => {
+        this.tasksRef.child(taskid).remove();
+    }
+
+    updateTask = (task) => {
+        this.tasksRef.child(task.id).update({
+            topic: task.topic,
+            action: task.action,
+            due: this.toDatabaseTimestamp(task.due)
+        });
     }
 
     signOut = () => {  
@@ -25,4 +109,4 @@ class Firebase {
     }
 }
 
-export default Firebase;
+export default FirebaseStore;

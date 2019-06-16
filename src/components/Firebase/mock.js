@@ -1,8 +1,8 @@
 class FirebaseMock {
     constructor() {
-        this.auth = { onAuthStateChanged: () => { 
-            console.log("Ignored: onAuthStateChanged");
-            return () => {} 
+        this.auth = { onAuthStateChanged: (callback) => { 
+            callback(this.emptyUser);
+            return () => {};
         } };
         this.emptyUser = { displayName: '<mock>' };
         this.isMock = true;
@@ -68,11 +68,6 @@ class FirebaseMock {
             this.tasks.splice(foundIndex, 1);
             this.fireTaskListUpdate();
         }
-    }
-
-    updateTaskList = (taskList) => {
-        this.tasks = taskList;
-        this.fireTaskListUpdate();
     }
 
     signOut = () => {
