@@ -40,8 +40,6 @@ class FirebaseStore {
 
         }));
 
-        console.log("firebase data update!");
-
         this.fireTaskListUpdate(taskList);
     }
 
@@ -72,7 +70,7 @@ class FirebaseStore {
     unregisterTaskListUpdate = () => {
         console.log("Ignored: unregisterTaskListUpdate");        
 
-        if (this.onTaskListUpdate.length == 0 && this.tasksRef) {
+        if (this.onTaskListUpdate.length === 0 && this.tasksRef) {
             this.tasksRef.off();
             this.tasksRef = null;
         }
@@ -105,6 +103,11 @@ class FirebaseStore {
     }
 
     signOut = () => {  
+        if (this.tasksRef) {
+            this.tasksRef.off();
+            this.tasksRef = null;
+        }
+        this.onTaskListUpdate = [];
         this.auth.signOut();
     }
 }

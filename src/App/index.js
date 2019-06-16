@@ -17,9 +17,12 @@ import Popover from 'react-bootstrap/Popover';
 import Overlay from 'react-bootstrap/Overlay';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 
-import { MdLineStyle, MdWarning, MdAlarm, MdSkipNext, MdCheck, MdAddCircleOutline } from 'react-icons/md';
+import { MdLineStyle, MdWarning, MdAlarm, MdCheck, MdAddCircleOutline } from 'react-icons/md';
 
 import { DAY_ADD, alignDate, getDates, toDateString } from '../utils/dateutils';
+
+// TODO: Split into more managable components...
+// TODO: Failure handling
 
 class App extends React.Component {
     uiConfig = {
@@ -41,6 +44,19 @@ class App extends React.Component {
         }
     }
 
+    initialState = {
+        tasks: [],
+        selectedFilter: 'today',
+        filterCounters: {},
+        filteredTasks: [],
+        dates: [], 
+        addDate: new Date(),
+        addTopic: "",
+        addAction: "",
+        showPostpone: false, 
+        targetPostpone: null 
+    }
+
     warnTaskCount = 20;
     keySeparator = '_';
 
@@ -50,22 +66,12 @@ class App extends React.Component {
         all: () => { return true }
     }
 
+    savedInput = null;
+
     constructor(props) {
         super(props);
     
-        this.state = { 
-            authUser: props.firebase.emptyUser, 
-            tasks: [],
-            selectedFilter: 'today',
-            filterCounters: {},
-            filteredTasks: [],
-            dates: [], 
-            addDate: new Date(),
-            addTopic: "",
-            addAction: "",
-            showPostpone: false, 
-            targetPostpone: null 
-        };
+        this.state = { ...this.initialState, authUser: props.firebase.emptyUser }
     }
 
     applyFilters = (list, value) => {
@@ -90,6 +96,7 @@ class App extends React.Component {
                 return accumulator;
             }, 0);
 
+            //TODO: not sure how to use setState here
             this.state.filterCounters[key] = filterCount;
         });
     }
@@ -106,8 +113,10 @@ class App extends React.Component {
 
         this.unregisterAuthObserver = this.props.firebase.auth.onAuthStateChanged(
             (user) => {
-                this.setState({ authUser: user });
-                this.props.firebase.registerTaskListUpdate(this.onTaskListUpdate, user);       
+                if (user) {
+                    this.setState({ authUser: user });
+                    this.props.firebase.registerTaskListUpdate(this.onTaskListUpdate, user);       
+                }
             }
         );
     }
@@ -118,6 +127,13 @@ class App extends React.Component {
         this.props.firebase.unregisterTaskListUpdate(this.onTaskListUpdate);
     }
 
+    signOut = () => {
+        this.setState(this.initialState);
+        this.setState({dates: getDates()});
+        this.setState({ authUser: this.props.firebase.emptyUser });
+        this.props.firebase.signOut();        
+    }
+    
     onFilterButton = (value) => {
         this.setState({ selectedFilter: value });
         this.applyFilters(this.state.tasks, value);
@@ -150,10 +166,46 @@ class App extends React.Component {
         });
     }
 
+    saveInput = (toSave) => {
+        this.savedInput = toSave;
+    }
+
+    clearSavedInput = () => {
+        this.savedInput = null;
+    }
+
+    onInputKeyDown = (event, task, name) => {
+        if (this.savedInput && event.key === "Escape") {
+            this.setState(state => {
+                const tasks = state.tasks.map((item) => {
+                    if (task.id === item.id) {
+                        item[name] = this.savedInput;
+                    }
+    
+                    return item;
+                });
+    
+                return tasks;
+            });
+        }
+    }
+
     onInputKeyPress = (event, task) => {
         if (event.key === "Enter") { 
             event.preventDefault();
             this.props.firebase.updateTask(task); 
+        }
+        else if (event.key === "Escape" && this.savedInput)
+        {
+            task.topic = this.savedInput;
+            this.props.firebase.updateTask(task); 
+        }
+    }
+
+    onTextAreaKeyPress = (event, task) => {
+        if (event.key === "Enter" && event.shiftKey) {
+            event.preventDefault();
+            this.props.firebase.updateTask(task)
         }
     }
 
@@ -186,18 +238,6 @@ class App extends React.Component {
                 this.props.firebase.updateTask(task);
             }
         });
-
-/*         this.setState(state => {
-            const tasks = state.tasks.map((item) => {
-                if (key == item.id) {
-                    item.due = date;
-                }
-
-                return item;
-            });
-
-            return tasks;
-        }); */
     }
 
     onPostponeButtonBlur = (event) => {
@@ -235,7 +275,7 @@ class App extends React.Component {
         if (due < today) {
             return "danger";
         }
-        else if (due == today) {
+        else if (due === today) {
             return "success";
         }
         else if (due <= week) {
@@ -249,10 +289,12 @@ class App extends React.Component {
         let isAboveLimit = (this.state.filterCounters[filter] >= this.warnTaskCount);
 
         return (
-        <ToggleButton value={filter} variant={bsVariant} className="w-100">
+        <ToggleButton type="radio" value={filter} variant={bsVariant} className="w-100">
             {name}
-            <Badge variant={isAboveLimit ? 'warning' : 'secondary'} pill className="float-right">
-                {isAboveLimit ? <MdWarning className="float-right"/> : this.state.filterCounters[filter]}
+            <br />
+            <Badge variant={isAboveLimit ? 'danger' : 'secondary'} className="border border-dark">
+                {this.state.filterCounters[filter]}
+                {isAboveLimit && <MdWarning className="float-right"/>}
             </Badge>
         </ToggleButton>
         );
@@ -274,11 +316,11 @@ class App extends React.Component {
             <div className="w-100">
                 <Navbar.Brand><MdLineStyle className="mb-1 mr-2" size={32} />Grabtangle</Navbar.Brand>
                 <Navbar.Text className="float-right">
-                    Hi, <a onClick={(e) => this.props.firebase.signOut() }>{this.state.authUser.displayName}</a>
+                    Hi, <a onClick={(e) => this.signOut() }>{this.state.authUser.displayName}</a>
                 </Navbar.Text>                
                 <ButtonToolBar className="mt-1 d-flex flex-column">
-                    <ToggleButtonGroup type="radio" name="filter" value={this.state.selectedFilter} onChange={(value) => this.onFilterButton(value)}>
-                        <OverlayTrigger trigger="click" placement="bottom" overlay={
+                    <ToggleButtonGroup name="filter" value={this.state.selectedFilter} onChange={(value) => this.onFilterButton(value)}>
+                        <OverlayTrigger trigger="click" placement="bottom-start" overlay={
                             <Popover title='Add new task'>
                                 <Form>
                                     <Form.Group>
@@ -288,7 +330,7 @@ class App extends React.Component {
                                         <Form.Control as="textarea" onChange={(e) => this.onNewActionChange(e)} value={this.state.addAction}></Form.Control>
                                         <Button className="mt-2 mb-1" variant="success" 
                                             onClick={(e) => this.onNewButtonClick(e)} 
-                                            disabled={this.state.addTopic.length == 0 || this.state.addAction.length == 0}>Add</Button>
+                                            disabled={this.state.addTopic.length === 0 || this.state.addAction.length === 0}>Add</Button>
                                         <Badge variant="primary" className="float-right mt-3">{toDateString(this.state.addDate)}</Badge>
                                         <ButtonToolBar className="d-flex flex-row">
                                             { this.state.dates.map((dt) => (
@@ -301,7 +343,7 @@ class App extends React.Component {
                                 </Form>
                             </Popover>
                         }>
-                            <Button variant="secondary" className="w-100"><MdAddCircleOutline size={24}/></Button>
+                            <Button variant="secondary" className="w-25"><MdAddCircleOutline size={24}/></Button>
                         </OverlayTrigger>
                         {this.renderFilterButton('Today', 'today', 'success')}
                         {this.renderFilterButton('Week', 'week', 'primary')}
@@ -335,12 +377,24 @@ class App extends React.Component {
                                     <Form.Group controlId="control0">
                                         <Form.Control name={"topic" + this.keySeparator + task.id} className="mb-1" type="text" value={task.topic} 
                                             onChange={(e) => this.onInputChange(e, task)}
-                                            onKeyPress={(e) => this.onInputKeyPress(e, task) } />
+                                            onKeyPress={(e) => this.onInputKeyPress(e, task)} 
+                                            onFocus={(e) => this.saveInput(task.topic)}
+                                            onBlur={(e) => this.clearSavedInput()}
+                                            onKeyDown={(e) => this.onInputKeyDown(e, task, 'topic')}
+                                            />
                                         <Form.Control name={"action" + this.keySeparator + task.id} as="textarea" rows="3" value={task.action} 
                                             onChange={(e) => this.onInputChange(e, task)}
-                                            onKeyPress={(e) => {if (e.key === "Enter") { e.preventDefault(); } }} />
+                                            onKeyPress={(e) => this.onTextAreaKeyPress(e, task)}
+                                            onFocus={(e) => this.saveInput(task.action)}
+                                            onBlur={(e) => this.clearSavedInput()}
+                                            onKeyDown={(e) => this.onInputKeyDown(e, task, 'action')}
+                                             />
                                     </Form.Group>
                                 </Form>
+                                <small>
+                                    Press <code className="text-dark bg-secondary">Shift</code> + <code className="text-dark bg-secondary">Enter</code> to save immediately.
+                                    Restore original input with <code className="text-dark bg-secondary">Esc</code>.
+                                </small>
                                 <div className="float-right">
                                     <Button name={"postpone" + this.keySeparator + task.id} className="mr-2" variant="warning" 
                                         onClick={(e) => this.onPostponeButtonClick(e)}
