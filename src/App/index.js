@@ -391,7 +391,7 @@ class App extends React.Component {
                                              />
                                     </Form.Group>
                                 </Form>
-                                <small>
+                                <small className="d-none d-md-inline">
                                     Press <code className="text-dark bg-secondary">Shift</code> + <code className="text-dark bg-secondary">Enter</code> to save immediately.
                                     Restore original input with <code className="text-dark bg-secondary">Esc</code>.
                                 </small>
