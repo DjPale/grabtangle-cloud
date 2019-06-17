@@ -216,9 +216,6 @@ class App extends React.Component {
         if (task.dirty) {
             this.props.firebase.updateTask(task);
         }
-
-        // workaround for mobile browser
-        this.setState({ showPostpone: false });
     }
 
     onPostponeButtonClick = (event) => {
@@ -237,6 +234,8 @@ class App extends React.Component {
         else {
             return;
         }
+
+        this.setState({ showPostpone: false });
 
         this.state.tasks.forEach((task) => {
             if (task.id === key) {
