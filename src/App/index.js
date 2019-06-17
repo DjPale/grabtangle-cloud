@@ -1,6 +1,6 @@
 import React from 'react';
 import StyledFirebaseAuth from 'react-firebaseui/StyledFirebaseAuth';
-import firebase from 'firebase';
+import firebase from 'firebase/app';
 
 import JumboTron from 'react-bootstrap/Jumbotron';
 import Accordion from 'react-bootstrap/Accordion';
@@ -17,7 +17,7 @@ import Popover from 'react-bootstrap/Popover';
 import Overlay from 'react-bootstrap/Overlay';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
 
-import { MdLineStyle, MdWarning, MdAlarm, MdCheck, MdAddCircleOutline } from 'react-icons/md';
+import { MdLineStyle, MdWarning, MdAlarm, MdCheck, MdAddCircleOutline, MdHighlightOff } from 'react-icons/md';
 
 import { DAY_ADD, alignDate, getDates, toDateString } from '../utils/dateutils';
 
@@ -90,15 +90,18 @@ class App extends React.Component {
     updateFilterCounters = (list) => {
         let today = alignDate(new Date()).valueOf();
 
+        const newCounters = {};
+
         Object.keys(this.filterDefinitions).forEach((key) => {
             let filterCount = list.reduce((accumulator, task) => {
                 accumulator += (this.filterDefinitions[key](task, today) ? 1 : 0);
                 return accumulator;
             }, 0);
 
-            //TODO: not sure how to use setState here
-            this.state.filterCounters[key] = filterCount;
+            newCounters[key] = filterCount;
         });
+
+        this.setState({ filterCounters: newCounters });
     }
 
     onTaskListUpdate = (list) => {
@@ -213,6 +216,9 @@ class App extends React.Component {
         if (task.dirty) {
             this.props.firebase.updateTask(task);
         }
+
+        // workaround for mobile browser
+        this.setState({ showPostpone: false });
     }
 
     onPostponeButtonClick = (event) => {
@@ -233,7 +239,7 @@ class App extends React.Component {
         }
 
         this.state.tasks.forEach((task) => {
-            if (task.id == key) {
+            if (task.id === key) {
                 task.due = date;
                 this.props.firebase.updateTask(task);
             }
@@ -289,7 +295,7 @@ class App extends React.Component {
         let isAboveLimit = (this.state.filterCounters[filter] >= this.warnTaskCount);
 
         return (
-        <ToggleButton type="radio" value={filter} variant={bsVariant} className="w-100">
+        <ToggleButton type="radio" value={filter} variant={bsVariant} className="w-100 filterbutton">
             {name}
             <br />
             <Badge variant={isAboveLimit ? 'danger' : 'secondary'} className="border border-dark">
@@ -316,8 +322,9 @@ class App extends React.Component {
             <div className="w-100">
                 <Navbar.Brand><MdLineStyle className="mb-1 mr-2" size={32} />Grabtangle</Navbar.Brand>
                 <Navbar.Text className="float-right">
-                    Hi, <a onClick={(e) => this.signOut() }>{this.state.authUser.displayName}</a>
-                </Navbar.Text>                
+                    Hi, <span className="text-white">{this.state.authUser.displayName}</span>
+                    <Button variant="link" className="p-0 align-baseline" onClick={(e) => this.signOut() }><MdHighlightOff size={22}/></Button>
+                </Navbar.Text>
                 <ButtonToolBar className="mt-1 d-flex flex-column">
                     <ToggleButtonGroup name="filter" value={this.state.selectedFilter} onChange={(value) => this.onFilterButton(value)}>
                         <OverlayTrigger trigger="click" placement="bottom-start" overlay={
@@ -331,7 +338,10 @@ class App extends React.Component {
                                         <Button className="mt-2 mb-1" variant="success" 
                                             onClick={(e) => this.onNewButtonClick(e)} 
                                             disabled={this.state.addTopic.length === 0 || this.state.addAction.length === 0}>Add</Button>
-                                        <Badge variant="primary" className="float-right mt-3">{toDateString(this.state.addDate)}</Badge>
+                                        <h5 className="float-right mt-2">
+                                            <small className="mr-2">Due date</small>
+                                            <Badge variant={this.dateToVariant(this.state.addDate)}>{toDateString(this.state.addDate)}</Badge>
+                                        </h5>
                                         <ButtonToolBar className="d-flex flex-row">
                                             { this.state.dates.map((dt) => (
                                                 <Button key={dt.name} className="w-50 rounded-pill mt-1" size="sm" variant="primary"

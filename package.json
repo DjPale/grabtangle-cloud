@@ -1,6 +1,6 @@
 {
   "name": "grabtangle-cloud",
-  "version": "1.0.0-rc",
+  "version": "1.0.0-rc2",
   "private": true,
   "dependencies": {
     "bootswatch": "^4.3.1",

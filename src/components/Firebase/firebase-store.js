@@ -1,5 +1,5 @@
-import app from 'firebase/app';
-import Firebase from 'firebase';
+import firebase from 'firebase/app';
+import 'firebase/database';
 import 'firebase/auth';
 
 const config = {
@@ -14,10 +14,10 @@ const config = {
 
 class FirebaseStore {
     constructor() {
-        app.initializeApp(config);
+        firebase.initializeApp(config);
 
-        this.auth = app.auth();
-        this.db = app.database();
+        this.auth = firebase.auth();
+        this.db = firebase.database();
 
         this.emptyUser = null;
 
@@ -30,7 +30,10 @@ class FirebaseStore {
     onListChange = (snapshot) => {
         const taskListObject = snapshot.val();
 
-        if (!taskListObject) return;
+        if (!taskListObject) {
+            this.fireTaskListUpdate([]);
+            return;
+        }
 
         const taskList = Object.keys(taskListObject).map(key => ({
             id: key,
@@ -56,14 +59,7 @@ class FirebaseStore {
 
         if (!this.tasksRef) {
             this.tasksRef = this.db.ref(`tasks/${uid}`);
-
-            this.tasksRef.once('value', (snapshot) => {
-                if (!snapshot.exists()) {
-                    this.db.ref('tasks').set(uid).then(() => this.tasksRef.on('value', this.onListChange));
-                } else {
-                    this.tasksRef.on('value', this.onListChange);
-                }
-            });
+            this.tasksRef.on('value', this.onListChange);
         }
     }
 
@@ -83,7 +79,7 @@ class FirebaseStore {
 
     newTask = (newtopic, newaction, duedate) => {
         this.tasksRef.push({ 
-            created: Firebase.database.ServerValue.TIMESTAMP,
+            created: firebase.database.ServerValue.TIMESTAMP,
             topic: newtopic, 
             action: newaction, 
             due: this.toDatabaseTimestamp(duedate)

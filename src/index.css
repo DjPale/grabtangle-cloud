@@ -12,3 +12,7 @@ body {
      max-width: 800px!important;
     }
   }
+
+ .filterbutton {
+    cursor: pointer;
+}
