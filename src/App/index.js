@@ -146,6 +146,11 @@ class App extends React.Component {
         this.props.firebase.signOut();        
     }
     
+    newTask = () => {
+        this.props.firebase.newTask(this.state.addTopic, this.state.addAction, this.state.addDate);
+        this.setState({ addTopic: "", addAction: "" });
+    }
+
     onFilterButton = (value) => {
         this.setState({ selectedFilter: value });
         this.applyFilters(this.state.tasks, value);
@@ -263,9 +268,20 @@ class App extends React.Component {
     }
 
     onNewButtonClick = (event) => {
-        this.props.firebase.newTask(this.state.addTopic, this.state.addAction, this.state.addDate);
+        this.newTask();
+    }
 
-        this.setState({ addTopic: "", addAction: "" });
+    onNewActionKeyPress = (event, task) => {
+        if (event.key === "Enter" && event.shiftKey) {
+            event.preventDefault();
+            this.newTask();
+        }
+    }
+
+    onNewTopicKeyPress = (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault()
+        }
     }
 
     onNewDueButtonClick = (event,dateItem) => {
@@ -340,9 +356,15 @@ class App extends React.Component {
                                 <Form>
                                     <Form.Group>
                                         <Form.Label>Topic</Form.Label>
-                                        <Form.Control type="input" onChange={(e) => this.onNewTopicChange(e)} value={this.state.addTopic}></Form.Control>
+                                        <Form.Control type="input" 
+                                            onChange={(e) => this.onNewTopicChange(e)} 
+                                            onKeyDown={(e) => this.onNewTopicKeyPress(e)}
+                                            value={this.state.addTopic}></Form.Control>
                                         <Form.Label className="mt-1">Next action</Form.Label>
-                                        <Form.Control as="textarea" onChange={(e) => this.onNewActionChange(e)} value={this.state.addAction}></Form.Control>
+                                        <Form.Control as="textarea" 
+                                            onChange={(e) => this.onNewActionChange(e)} 
+                                            onKeyDown={(e) => this.onNewActionKeyPress(e)}
+                                            value={this.state.addAction}></Form.Control>
                                         <Button className="mt-2 mb-1" variant="success" 
                                             onClick={(e) => this.onNewButtonClick(e)} 
                                             disabled={this.state.addTopic.length === 0 || this.state.addAction.length === 0}>Add</Button>
