@@ -1,68 +1,73 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Grabtangle Cloud
 
-## Available Scripts
+## What is it?
 
-In the project directory, you can run:
+This is a small, very simple, yet-another Todo-application for short-term day-to-day task tracking. It is inspired by the [Getting Things Done (GTD)](https://gettingthingsdone.com/) philosophy by David Allen.
 
-### `npm start`
+The application is not revolutionary in any way but supports a productivity philosophy which I find very useful. To use the infamous 80-20-principle: 
 
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+* 80% is to follow a productivity philosophy
+* 20% is some kinds of tooling (this app?) which acts as the "filing system" in GTD
 
-The page will reload if you make edits.<br>
-You will also see any lint errors in the console.
+The application is also inspired by the now-defunct Google Inbox product (R.I.P.) in the sense that you postpone tasks with a few relative time options
+(Also, I really hate date pickers).
 
-### `npm test`
+Note that you should always consider moving tasks to other systems when applicable. For example, scheduling meetings can be done in Outlook, more extensive notes should be kept other places and long-term goals should be documented separately.
 
-Launches the test runner in the interactive watch mode.<br>
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+This is purely to keep track of your short/mid-term memory!
 
-### `npm run build`
+## How to use?
 
-Builds the app for production to the `build` folder.<br>
-It correctly bundles React in production mode and optimizes the build for the best performance.
+At the core, just adapt the GTD-philosophy or at least the parts you like :)
+Be sure to keep the tool handy so that you can jot down anything that can be of interest to you. Some other key areas are described in the following sections:
 
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
+### Clear actions!
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+One of the most important principles that should be followed is to create very specific action increments that are clearly described and easy to follow-up. I think this is one of the most important tip.
 
-### `npm run eject`
+### "2 - 20 - 20" rules / guidelines
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Some guiding principles that I find useful to follow and which is partly reflected in the tool are the following:
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+* 2 minutes (from GTD) - if something takes less than this - do the task at once without recording it
+* 20 tasks - maximum number of tasks to keep without losing focus
+* 20 days `beta` - maximum number of days the action should be unchanged for - if you have a lot of old tasks you're probably using it the wrong way - currently testing this rule
 
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+At the end of each workday - the `Today` tab should ideally be empty. Postpone or redefine actions if needed.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+### Completion == Deletion
 
-## Learn More
+Whenever you have no further actions on a certain topic - you complete it and forget it. In essence - the tool deletes it from the database. There is absolutely no reason to keep a log or reports of this, it's in the past now and you are moving on to other things.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Waiting?
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+One of the things I didn't find particularily useful in the GTD philosophy is to have a "Waiting" category. You should consider completing it instead since you will be triggered by another person whenever you get a response or answer. Consider making a new task at that point instead of filling up the list.
 
-### Code Splitting
+### Features
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+* Cloud-based storage with Firebase gives instant updates across all logged
+* Supports Firebase Auth and a number of providers for easy on-boarding
+* Responsive design - should work on mobile and desktops alike
+* Easy to use interface (since the app is so basic)
+* No date pickers! - Postpone instead ;)
 
-### Analyzing the Bundle Size
+## Technologies
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
+Summary of technologies used for the application
 
-### Making a Progressive Web App
+### Development
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
+* [React](https://reactjs.org/) for the front-end - bootstrapped with [Create React App](https://github.com/facebook/create-react-app)
+* [React Bootstrap 4](https://reactstrap.github.io/) for responsive layout, components and styling
+* [Bootswatch](https://bootswatch.com/) for theming
+* [React Firebase UI](https://github.com/firebase/firebaseui-web-react) for authentication flow and dialogs
+* [React Firebase](https://react-firebase-js.com/docs/react-firebase-realtime-database/getting-started) for handling the Firebase JDK in React
 
-### Advanced Configuration
+### Database and hosting
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
+* [Firebase Hosting](https://firebase.google.com/docs/hosting) for hosting the Web application
+* [Firebase Realtime DB](https://firebase.google.com/docs/database) for storage and backend
 
-### Deployment
+## Tutorials
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
-
-### `npm run build` fails to minify
-
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+* Very useful tutorials on React and Firebase by [Robin Wieruch](https://www.robinwieruch.de/)
