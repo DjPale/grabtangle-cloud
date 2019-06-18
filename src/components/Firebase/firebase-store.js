@@ -39,8 +39,9 @@ class FirebaseStore {
             id: key,
             topic: taskListObject[key].topic,
             action: taskListObject[key].action,
+            created: new Date(taskListObject[key].created),
+            modified: taskListObject[key].modified ? new Date(taskListObject[key].modified) : null,
             due: new Date(Date.parse(taskListObject[key].due)),
-
         }));
 
         this.fireTaskListUpdate(taskList);
@@ -76,10 +77,10 @@ class FirebaseStore {
         return date.toISOString();
     }
 
-
     newTask = (newtopic, newaction, duedate) => {
         this.tasksRef.push({ 
             created: firebase.database.ServerValue.TIMESTAMP,
+            modified: firebase.database.ServerValue.TIMESTAMP,
             topic: newtopic, 
             action: newaction, 
             due: this.toDatabaseTimestamp(duedate)
@@ -91,10 +92,14 @@ class FirebaseStore {
     }
 
     updateTask = (task) => {
+        // A little bit hacky - task.dirty is only set when editing text and not postponing - which basically is what we want :P
+        const modified = task.dirty ? firebase.database.ServerValue.TIMESTAMP : null;
+
         this.tasksRef.child(task.id).update({
             topic: task.topic,
             action: task.action,
-            due: this.toDatabaseTimestamp(task.due)
+            due: this.toDatabaseTimestamp(task.due),
+            modified: modified
         });
     }
 

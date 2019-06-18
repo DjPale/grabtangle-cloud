@@ -30,8 +30,8 @@ class App extends React.Component {
         signInFlow: 'popup',
         // We will display Google and Facebook as auth providers.
         signInOptions: [
-            firebase.auth.EmailAuthProvider.PROVIDER_ID,
             firebase.auth.GoogleAuthProvider.PROVIDER_ID,
+            firebase.auth.EmailAuthProvider.PROVIDER_ID,
             firebase.auth.GithubAuthProvider.PROVIDER_ID,
             firebase.auth.TwitterAuthProvider.PROVIDER_ID
         ],
@@ -58,6 +58,7 @@ class App extends React.Component {
     }
 
     warnTaskCount = 20;
+    warnStaleDays = 20;
     keySeparator = '_';
 
     filterDefinitions = {
@@ -72,6 +73,34 @@ class App extends React.Component {
         super(props);
     
         this.state = { ...this.initialState, authUser: props.firebase.emptyUser }
+    }
+
+    isStale = (task) => {
+        if (!task.modified) return false;
+
+        const today = alignDate(new Date()).valueOf();
+
+        return (alignDate(task.modified).valueOf() + (this.warnStaleDays * DAY_ADD) <= today);
+    }
+
+    // Listen to the Firebase Auth state and set the local state.
+    componentDidMount() {
+        this.setState({dates: getDates()});
+
+        this.unregisterAuthObserver = this.props.firebase.auth.onAuthStateChanged(
+            (user) => {
+                if (user) {
+                    this.setState({ authUser: user });
+                    this.props.firebase.registerTaskListUpdate(this.onTaskListUpdate, user);       
+                }
+            }
+        );
+    }
+    
+    // Make sure we un-register Firebase observers when the component unmounts.
+    componentWillUnmount() {
+        this.unregisterAuthObserver();
+        this.props.firebase.unregisterTaskListUpdate(this.onTaskListUpdate);
     }
 
     applyFilters = (list, value) => {
@@ -108,26 +137,6 @@ class App extends React.Component {
         this.setState({ tasks: list });
         this.updateFilterCounters(list);
         this.applyFilters(list, this.state.selectedFilter);
-    }
-
-    // Listen to the Firebase Auth state and set the local state.
-    componentDidMount() {
-        this.setState({dates: getDates()});
-
-        this.unregisterAuthObserver = this.props.firebase.auth.onAuthStateChanged(
-            (user) => {
-                if (user) {
-                    this.setState({ authUser: user });
-                    this.props.firebase.registerTaskListUpdate(this.onTaskListUpdate, user);       
-                }
-            }
-        );
-    }
-    
-    // Make sure we un-register Firebase observers when the component unmounts.
-    componentWillUnmount() {
-        this.unregisterAuthObserver();
-        this.props.firebase.unregisterTaskListUpdate(this.onTaskListUpdate);
     }
 
     signOut = () => {
@@ -311,7 +320,7 @@ class App extends React.Component {
             <JumboTron>
                 <h1 className="text-center mb-5">Welcome to Grabtangle!</h1>
                 <p id="LoginLoader" className="text-center">Loading...</p>
-                <StyledFirebaseAuth uiConfig={ this.uiConfig } firebaseAuth={ this.props.firebase.auth } />
+                <StyledFirebaseAuth uiCallback={ui => ui.disableAutoSignIn()} uiConfig={this.uiConfig} firebaseAuth={this.props.firebase.auth} />
             </JumboTron>
             );
         }
@@ -377,7 +386,12 @@ class App extends React.Component {
                 { this.state.filteredTasks.map((task) => (
                     <Card key={task.id}>
                         <Accordion.Toggle as={Card.Header} eventKey={task.id}>
-                            <Card.Title>{task.topic} <Badge className="float-right" variant={this.dateToVariant(task.due)}>{toDateString(task.due)}</Badge></Card.Title>
+                            <Card.Title>{task.topic}
+                                <Badge className="float-right" variant={this.dateToVariant(task.due)}>{toDateString(task.due)}</Badge>
+                                {this.isStale(task) && 
+                                <Badge className="float-right mr-2" variant="danger">Stale</Badge>
+                                }
+                            </Card.Title>
                             <Card.Subtitle className="text-truncate">{task.action}</Card.Subtitle> 
                         </Accordion.Toggle>
                         <Accordion.Collapse eventKey={task.id}>
