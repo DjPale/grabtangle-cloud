@@ -345,8 +345,9 @@ class App extends React.Component {
             <Navbar bg="light" sticky="top">
             <div className="w-100">
                 <Navbar.Brand><MdLineStyle className="mb-1 mr-2" size={32} />Grabtangle</Navbar.Brand>
+                <Navbar.Text><small>{process.env.REACT_APP_VERSION}</small></Navbar.Text>
                 <Navbar.Text className="float-right">
-                    Hi, <span className="text-white">{this.state.authUser.displayName}</span>
+                    <span className="d-none d-sm-inline">Hi, <span className="text-white">{this.state.authUser.displayName}</span></span>
                     <Button variant="link" className="p-0 align-baseline" onClick={(e) => this.signOut() }><MdHighlightOff size={22}/></Button>
                 </Navbar.Text>
                 <ButtonToolBar className="mt-1 d-flex flex-column">
