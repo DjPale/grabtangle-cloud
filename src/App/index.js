@@ -54,7 +54,8 @@ class App extends React.Component {
         addTopic: "",
         addAction: "",
         showPostpone: false, 
-        targetPostpone: null 
+        targetPostpone: null,
+        activeKey: null
     }
 
     warnTaskCount = 20;
@@ -68,6 +69,8 @@ class App extends React.Component {
     }
 
     savedInput = null;
+    inputRefs = {};
+    focusInput = null;
 
     constructor(props) {
         super(props);
@@ -96,11 +99,26 @@ class App extends React.Component {
             }
         );
     }
-    
+
+    componentDidUpdate() {
+        // based on https://davidwalsh.name/react-autofocus and another site which I cannot find again
+        if (this.focusInput) {
+            console.log(this.focusInput);
+            this.inputRefs[this.focusInput].focus();
+            this.focusInput = null;
+        }
+    }
+
     // Make sure we un-register Firebase observers when the component unmounts.
     componentWillUnmount() {
         this.unregisterAuthObserver();
         this.props.firebase.unregisterTaskListUpdate(this.onTaskListUpdate);
+    }
+
+    setFocus = (key) => {
+        if (this.inputRefs[key]) {
+            this.focusInput = key;
+        }
     }
 
     applyFilters = (list, value) => {
@@ -211,6 +229,10 @@ class App extends React.Component {
         if (event.key === "Enter") { 
             event.preventDefault();
             this.props.firebase.updateTask(task); 
+
+            if (event.shiftKey) {
+                this.setState({ activeKey: null });
+            }
         }
         else if (event.key === "Escape" && this.savedInput)
         {
@@ -222,7 +244,8 @@ class App extends React.Component {
     onTextAreaKeyPress = (event, task) => {
         if (event.key === "Enter" && event.shiftKey) {
             event.preventDefault();
-            this.props.firebase.updateTask(task)
+            this.props.firebase.updateTask(task);
+            this.setState({ activeKey: null });
         }
     }
 
@@ -275,12 +298,14 @@ class App extends React.Component {
         if (event.key === "Enter" && event.shiftKey) {
             event.preventDefault();
             this.newTask();
+            this.setFocus('newTopic');
         }
     }
 
     onNewTopicKeyPress = (event) => {
         if (event.key === "Enter") {
-            event.preventDefault()
+            event.preventDefault();
+            this.setFocus('newAction');
         }
     }
 
@@ -294,6 +319,10 @@ class App extends React.Component {
 
     onNewActionChange = (event) => {
         this.setState({ addAction: event.target.value });
+    }
+
+    onAccordionClick = (event, key) => {
+        this.setState({ activeKey: this.state.activeKey === key ? null : key });
     }
 
     // TODO: move?
@@ -357,12 +386,15 @@ class App extends React.Component {
                                 <Form>
                                     <Form.Group>
                                         <Form.Label>Topic</Form.Label>
-                                        <Form.Control type="input" 
+                                        <Form.Control type="input" name="newTopic" 
+                                            autoFocus
+                                            ref={(r) => this.inputRefs["newTopic"] = r}
                                             onChange={(e) => this.onNewTopicChange(e)} 
                                             onKeyDown={(e) => this.onNewTopicKeyPress(e)}
                                             value={this.state.addTopic}></Form.Control>
                                         <Form.Label className="mt-1">Next action</Form.Label>
-                                        <Form.Control as="textarea" 
+                                        <Form.Control as="textarea" name="newAction" 
+                                            ref={(r) => this.inputRefs["newAction"] = r}
                                             onChange={(e) => this.onNewActionChange(e)} 
                                             onKeyDown={(e) => this.onNewActionKeyPress(e)}
                                             value={this.state.addAction}></Form.Control>
@@ -405,10 +437,10 @@ class App extends React.Component {
                 </Popover>
             </Overlay>
 
-            <Accordion className="m-2">
+            <Accordion className="m-2" activeKey={this.state.activeKey}>
                 { this.state.filteredTasks.map((task) => (
                     <Card key={task.id}>
-                        <Accordion.Toggle as={Card.Header} eventKey={task.id}>
+                        <Accordion.Toggle as={Card.Header} eventKey={task.id} onClick={(e) => this.onAccordionClick(e,task.id)}>
                             <Card.Title>{task.topic}
                                 <Badge className="float-right" variant={this.dateToVariant(task.due)}>{toDateString(task.due)}</Badge>
                                 {this.isStale(task) && 

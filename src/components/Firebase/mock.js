@@ -9,7 +9,7 @@ class FirebaseMock {
 
     
         this.tasks = [
-            { id: 0, topic: 'topic1', action: 'actionable item out of date', due: new Date(Date.now() - 100000000), created: new Date()  },
+            { id: 0, topic: 'topic1', action: 'actionable item out of date', due: new Date(Date.now() - 100000000), created: new Date(), modified: new Date(Date.now()- 4000000000)  },
             { id: 1, topic: 'topic2', action: 'another great actionable item', due: new Date(Date.now() + 100000000), created: new Date()  },
             { id: 2, topic: 'topic2', action: 'actionable belonging to the same topic', due: new Date(Date.now()), created: new Date()  },
             { id: 3, topic: 'topic3', action: 'actionable far far away', due: new Date(Date.now() + 800000000), created: new Date()  },
