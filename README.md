@@ -1,5 +1,7 @@
 # Grabtangle Cloud
 
+![Grabtangle Main Window](public/images/grabtangle-main-window.png)
+
 ## What is it?
 
 This is a small, very simple, yet-another Todo-application for short-term day-to-day task tracking. It is inspired by the [Getting Things Done (GTD)](https://gettingthingsdone.com/) philosophy by David Allen.
@@ -11,6 +13,8 @@ The application is not revolutionary in any way but supports a productivity phil
 
 The application is also inspired by the now-defunct Google Inbox product (R.I.P.) in the sense that you postpone tasks with a few relative time options
 (Also, I really hate date pickers).
+
+![Grabtangle Postpone Dates](public/images/grabtangle-postpone-dates.png)
 
 Note that you should always consider moving tasks to other systems when applicable. For example, scheduling meetings can be done in Outlook, more extensive notes should be kept other places and long-term goals should be documented separately.
 
