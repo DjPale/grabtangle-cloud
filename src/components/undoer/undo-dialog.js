@@ -29,23 +29,28 @@ class UndoDialog extends Component {
     }
 
     render() {
-        return (
-            <div className="d-flex justify-content-center">
-            <Toast 
-                delay={3000} show={this.state.show} autohide onClose={this.onClose}
-                style={{ position: 'absolute', top: 150 }}
-                className="border"
-                >
-                <Toast.Header className="bg-light">
-                    Task Completed
-                </Toast.Header>
-                <Toast.Body className="bg-light">
-                  <Button variant="link" className="p-0 align-baseline" size="sm"
-                    onClick={(e) => this.onUndoClick(e)}>I regret!</Button>
-                </Toast.Body>
-            </Toast>
-            </div>
-        );
+        // TODO: Temp workaround since toaster blocks input even when hidden
+        if (this.state.show) {
+            return (
+                <div className="d-flex justify-content-center">
+                <Toast 
+                    delay={3000} show={this.state.show} autohide onClose={this.onClose}
+                    style={{ position: 'absolute', top: 150 }}
+                    className="border"
+                    >
+                    <Toast.Header className="bg-light">
+                        Task Completed
+                    </Toast.Header>
+                    <Toast.Body className="bg-light">
+                    <Button variant="link" className="p-0 align-baseline" size="sm"
+                        onClick={(e) => this.onUndoClick(e)}>I regret!</Button>
+                    </Toast.Body>
+                </Toast>
+                </div>
+            );
+        } else {
+            return null;
+        }
     }
 }
 
