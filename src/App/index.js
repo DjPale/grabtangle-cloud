@@ -16,6 +16,9 @@ import Badge from 'react-bootstrap/Badge';
 import Popover from 'react-bootstrap/Popover';
 import Overlay from 'react-bootstrap/Overlay';
 import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Spinner from 'react-bootstrap/Spinner';
+
+import UndoDialog from '../components/undoer';
 
 import { MdLineStyle, MdWarning, MdAlarm, MdCheck, MdAddCircleOutline, MdHighlightOff } from 'react-icons/md';
 
@@ -55,12 +58,14 @@ class App extends React.Component {
         addAction: "",
         showPostpone: false, 
         targetPostpone: null,
-        activeKey: null
+        activeKey: null,
+        showLoading: true
     }
 
     warnTaskCount = 20;
     warnStaleDays = 20;
     keySeparator = '_';
+    loadRetriggerLimit = 100;
 
     filterDefinitions = {
         today: (task, today) => { return (alignDate(task.due).valueOf() <= today) },
@@ -71,11 +76,12 @@ class App extends React.Component {
     savedInput = null;
     inputRefs = {};
     focusInput = null;
+    lastLoad = 0;
 
-    constructor(props) {
+        constructor(props) {
         super(props);
     
-        this.state = { ...this.initialState, authUser: props.firebase.emptyUser }
+        this.state = { ...this.initialState, authUser: props.firebase.emptyUser };
     }
 
     isStale = (task) => {
@@ -103,7 +109,6 @@ class App extends React.Component {
     componentDidUpdate() {
         // based on https://davidwalsh.name/react-autofocus and another site which I cannot find again
         if (this.focusInput) {
-            console.log(this.focusInput);
             this.inputRefs[this.focusInput].focus();
             this.focusInput = null;
         }
@@ -121,6 +126,25 @@ class App extends React.Component {
         }
     }
 
+    saveInput = (toSave) => {
+        this.savedInput = toSave;
+    }
+
+    clearSavedInput = () => {
+        this.savedInput = null;
+    }
+
+    showLoader = (show) => {
+        let now = new Date().valueOf();
+
+        if (show && (now - this.lastLoad) < this.loadRetriggerLimit) {
+            return;
+        }
+
+        this.setState({ showLoading: show });
+        if (!show) this.lastLoad = now;
+    }
+
     applyFilters = (list, value) => {
         let today = alignDate(new Date()).valueOf();
 
@@ -129,7 +153,6 @@ class App extends React.Component {
         const filteredTasks = list.filter((item) => {
                 return filterFunc(item, today);
         });
-
         
         this.setState({ filteredTasks: filteredTasks });
     }
@@ -155,6 +178,7 @@ class App extends React.Component {
         this.setState({ tasks: list });
         this.updateFilterCounters(list);
         this.applyFilters(list, this.state.selectedFilter);
+        this.showLoader(false);
     }
 
     signOut = () => {
@@ -165,8 +189,27 @@ class App extends React.Component {
     }
     
     newTask = () => {
+        this.showLoader(true);
         this.props.firebase.newTask(this.state.addTopic, this.state.addAction, this.state.addDate);
         this.setState({ addTopic: "", addAction: "" });
+    }
+
+    updateTask = (task) => {
+        if (task.dirty) this.showLoader(true);
+        this.props.firebase.updateTask(task);
+    }
+
+    completeTask = (task) => {
+        this.showLoader(true);
+        this.props.undoer.addUndo(task);
+        this.props.firebase.completeTask(task.id);
+    }
+
+    onUndoTask = (task) => {
+        if (!task) return;
+
+        this.showLoader(true);
+        this.props.firebase.newTask(task.topic, task.action, new Date(task.due));
     }
 
     onFilterButton = (value) => {
@@ -201,14 +244,6 @@ class App extends React.Component {
         });
     }
 
-    saveInput = (toSave) => {
-        this.savedInput = toSave;
-    }
-
-    clearSavedInput = () => {
-        this.savedInput = null;
-    }
-
     onInputKeyDown = (event, task, name) => {
         if (this.savedInput && event.key === "Escape") {
             this.setState(state => {
@@ -228,7 +263,7 @@ class App extends React.Component {
     onInputKeyPress = (event, task) => {
         if (event.key === "Enter") { 
             event.preventDefault();
-            this.props.firebase.updateTask(task); 
+            this.updateTask(task); 
 
             if (event.shiftKey) {
                 this.setState({ activeKey: null });
@@ -237,21 +272,21 @@ class App extends React.Component {
         else if (event.key === "Escape" && this.savedInput)
         {
             task.topic = this.savedInput;
-            this.props.firebase.updateTask(task); 
+            this.updateTask(task); 
         }
     }
 
     onTextAreaKeyPress = (event, task) => {
         if (event.key === "Enter" && event.shiftKey) {
             event.preventDefault();
-            this.props.firebase.updateTask(task);
+            this.updateTask(task);
             this.setState({ activeKey: null });
         }
     }
 
     onCardBlur = (event,task) => {
         if (task.dirty) {
-            this.props.firebase.updateTask(task);
+            this.updateTask(task);
         }
     }
 
@@ -277,7 +312,7 @@ class App extends React.Component {
         this.state.tasks.forEach((task) => {
             if (task.id === key) {
                 task.due = date;
-                this.props.firebase.updateTask(task);
+                this.updateTask(task);
             }
         });
     }
@@ -287,7 +322,7 @@ class App extends React.Component {
     }
 
     onCompleteButtonClick = (event, task) => {
-        this.props.firebase.completeTask(task.id);
+        this.completeTask(task);
     }
 
     onNewButtonClick = (event) => {
@@ -323,6 +358,14 @@ class App extends React.Component {
 
     onAccordionClick = (event, key) => {
         this.setState({ activeKey: this.state.activeKey === key ? null : key });
+    }
+
+    onBackendCallComplete = (error) => {
+        this.setState({ showLoading: false });
+
+        if (error) {
+            console.warn("Backend Error: " + error);
+        }
     }
 
     // TODO: move?
@@ -373,8 +416,11 @@ class App extends React.Component {
         <Container>
             <Navbar bg="light" sticky="top">
             <div className="w-100">
+                <UndoDialog undoer={this.props.undoer} onUndo={(task) => this.onUndoTask(task)}/>                
+
                 <Navbar.Brand><MdLineStyle className="mb-1 mr-2" size={32} />Grabtangle</Navbar.Brand>
                 <Navbar.Text><small>{process.env.REACT_APP_VERSION}</small></Navbar.Text>
+                <Navbar.Text>{this.state.showLoading && <Spinner className="ml-3" variant="alert" animation="border" size="sm" />}</Navbar.Text>
                 <Navbar.Text className="float-right">
                     <span className="d-none d-sm-inline">Hi, <span className="text-white">{this.state.authUser.displayName}</span></span>
                     <Button variant="link" className="p-0 align-baseline" onClick={(e) => this.signOut() }><MdHighlightOff size={22}/></Button>
@@ -485,6 +531,7 @@ class App extends React.Component {
                     </Card>
                 )) }
             </Accordion>
+
         </Container> 
         );
       };
