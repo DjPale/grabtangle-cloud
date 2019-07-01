@@ -75,3 +75,7 @@ Summary of technologies used for the application
 ## Tutorials
 
 * Very useful tutorials on React and Firebase by [Robin Wieruch](https://www.robinwieruch.de/)
+
+# Building
+
+If you are interested in building this application for some weird reason, please see the [build instructions](BUILD.md).
