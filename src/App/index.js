@@ -427,7 +427,7 @@ class App extends React.Component {
                 </Navbar.Text>
                 <ButtonToolBar className="mt-1 d-flex flex-column">
                     <ToggleButtonGroup name="filter" value={this.state.selectedFilter} onChange={(value) => this.onFilterButton(value)}>
-                        <OverlayTrigger trigger="click" placement="bottom-start" overlay={
+                        <OverlayTrigger trigger="click" placement="bottom-start" rootClose overlay={
                             <Popover title='Add new task'>
                                 <Form>
                                     <Form.Group>
