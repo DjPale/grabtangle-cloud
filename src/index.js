@@ -13,7 +13,7 @@ ReactDOM.render(
     // Not a very elegant way of handling conditional mocking (via .env) - but could not find another obvious way...
     // Note that the dev server needs to be restarted when developing!
     <App 
-        firebase={process.env.REACT_APP_MOCK ? new FirebaseMock() : new FirebaseStore()} 
+        firebase={process.env.REACT_APP_MOCK === "true" ? new FirebaseMock() : new FirebaseStore()} 
         undoer={new UndoHandler()} />,
     document.getElementById('root'));
 

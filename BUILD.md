@@ -20,6 +20,8 @@ In order to run a mocked backend without any connection to firebase, please spec
 REACT_APP_MOCK=true
 ```
 
+Setting it to anything else will start the firebase backend. (Note that it uses a string comparison, not boolean).
+
 ### Firebase parameters
 
 In order to connect to an actual firebase instance, some additional environment variables are needed. Setting up a firebase project is described other places and is beyond scope of this description. At minimum you should have created a Web Application.
