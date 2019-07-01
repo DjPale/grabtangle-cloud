@@ -19,7 +19,7 @@ class UndoHandler {
 
     addUndo = (task) => {
         this.lastTask = Object.assign({}, task);
-        if (this.onUndoAdded) this.onUndoAdded();
+        if (this.onUndoAdded) this.onUndoAdded('Task Completed');
     }
 }
 

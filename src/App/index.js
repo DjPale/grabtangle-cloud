@@ -416,8 +416,15 @@ class App extends React.Component {
         <Container>
             <Navbar bg="light" sticky="top">
             <div className="w-100">
-                <UndoDialog undoer={this.props.undoer} onUndo={(task) => this.onUndoTask(task)}/>                
 
+                <div className="d-flex justify-content-center">
+                    <UndoDialog 
+                        undoer={this.props.undoer} 
+                        defaultShow={false} delay={3000}
+                        onUndo={(task) => this.onUndoTask(task)}
+                    />                
+                </div>
+             
                 <Navbar.Brand><MdLineStyle className="mb-1 mr-2" size={32} />Grabtangle</Navbar.Brand>
                 <Navbar.Text><small>{process.env.REACT_APP_VERSION}</small></Navbar.Text>
                 <Navbar.Text>{this.state.showLoading && <Spinner className="ml-3" variant="alert" animation="border" size="sm" />}</Navbar.Text>
@@ -469,7 +476,7 @@ class App extends React.Component {
                         {this.renderFilterButton('All', 'all', 'info')}
                    </ToggleButtonGroup>
                 </ButtonToolBar>
-            </div>
+            </div>  
             </Navbar>
 
             <Overlay show={this.state.showPostpone} target={this.state.targetPostpone} placement="top" containerPadding={20}>                    
@@ -483,7 +490,7 @@ class App extends React.Component {
                 </Popover>
             </Overlay>
 
-            <Accordion className="m-2" activeKey={this.state.activeKey}>
+             <Accordion className="m-2" activeKey={this.state.activeKey}>
                 { this.state.filteredTasks.map((task) => (
                     <Card key={task.id}>
                         <Accordion.Toggle as={Card.Header} eventKey={task.id} onClick={(e) => this.onAccordionClick(e,task.id)}>

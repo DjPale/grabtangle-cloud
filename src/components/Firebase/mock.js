@@ -35,6 +35,8 @@ class FirebaseMock {
         ];
 
         this.onTaskListUpdate = [];
+
+        this.idCounter = this.tasks.length;
     }
 
     registerTaskListUpdate = (callback) => {
@@ -75,7 +77,7 @@ class FirebaseMock {
     }
 
     newTask = (newtopic, newaction, duedate) => {
-        this.tasks.push({ id: this.tasks.length, topic: newtopic, action: newaction, due: duedate });
+        this.tasks.push({ id: this.idCounter++, topic: newtopic, action: newaction, due: duedate });
 
         this.fireTaskListUpdate();
     }
