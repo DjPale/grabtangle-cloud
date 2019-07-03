@@ -51,6 +51,13 @@ export const getDates = () => {
     return dates;
 }
 
+export const msUntilTomorrow = () => {
+    let now = new Date().valueOf();
+    let tomorrow = alignDate(new Date()).valueOf() + DAY_ADD;
+    // Add 1 second buffer
+    return ((tomorrow - now) + 1000);
+}
+
 export const toDateString = (date) => {
     let day = "0" + date.getDate();
     let month = "0" + (date.getMonth() + 1);

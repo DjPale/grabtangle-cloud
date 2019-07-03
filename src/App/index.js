@@ -22,7 +22,7 @@ import UndoDialog from '../components/undoer';
 
 import { MdLineStyle, MdWarning, MdAlarm, MdCheck, MdAddCircleOutline, MdHighlightOff } from 'react-icons/md';
 
-import { DAY_ADD, alignDate, getDates, toDateString } from '../utils/dateutils';
+import { DAY_ADD, alignDate, getDates, toDateString, msUntilTomorrow } from '../utils/dateutils';
 
 // TODO: Split into more managable components...
 // TODO: Failure handling
@@ -47,6 +47,7 @@ class App extends React.Component {
         }
     }
 
+    // Initial state
     initialState = {
         tasks: [],
         selectedFilter: 'today',
@@ -62,6 +63,7 @@ class App extends React.Component {
         showLoading: true
     }
 
+    // Constants
     warnTaskCount = 20;
     warnStaleDays = 20;
     keySeparator = '_';
@@ -73,28 +75,56 @@ class App extends React.Component {
         all: () => { return true }
     }
 
+    // Internal state
     savedInput = null;
     inputRefs = {};
     focusInput = null;
     lastLoad = 0;
+    dailyRefreshId = null;
 
-        constructor(props) {
+    constructor(props) {
         super(props);
     
         this.state = { ...this.initialState, authUser: props.firebase.emptyUser };
     }
 
     isStale = (task) => {
-        if (!task.modified) return false;
+        let dateToCheck = task.modified;
+
+        // fallback to created if we do not yet have a modified data field
+        if (!dateToCheck) {
+            dateToCheck = task.created;
+        }
+
+        // should not happen in principle
+        if (!dateToCheck) {
+            return false;
+        }
 
         const today = alignDate(new Date()).valueOf();
 
-        return (alignDate(task.modified).valueOf() + (this.warnStaleDays * DAY_ADD) <= today);
+        return (alignDate(dateToCheck).valueOf() + (this.warnStaleDays * DAY_ADD) <= today);
+    }
+
+    updateDates = () => {
+        this.setState({dates: getDates()});
+    }
+
+    startDailyRefresh = () => {
+        this.dailyRefreshId = setTimeout(this.onDailyRefresh, msUntilTomorrow());
+    }
+
+    stopDailyRefresh = () => {
+        if (this.dailyRefreshId) {
+            clearTimeout(this.dailyRefreshId);
+        }
     }
 
     // Listen to the Firebase Auth state and set the local state.
     componentDidMount() {
-        this.setState({dates: getDates()});
+        this.updateDates();
+
+        this.startDailyRefresh();
 
         this.unregisterAuthObserver = this.props.firebase.auth.onAuthStateChanged(
             (user) => {
@@ -116,6 +146,7 @@ class App extends React.Component {
 
     // Make sure we un-register Firebase observers when the component unmounts.
     componentWillUnmount() {
+        this.stopDailyRefresh();
         this.unregisterAuthObserver();
         this.props.firebase.unregisterTaskListUpdate(this.onTaskListUpdate);
     }
@@ -366,6 +397,16 @@ class App extends React.Component {
         if (error) {
             console.warn("Backend Error: " + error);
         }
+    }
+
+    onDailyRefresh = () => {
+        this.updateDates();
+        this.updateFilterCounters(this.state.tasks);
+        this.applyFilters(this.state.tasks, this.state.selectedFilter);
+
+        this.startDailyRefresh();
+
+        console.log("daily refresh");
     }
 
     // TODO: move?
