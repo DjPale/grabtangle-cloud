@@ -338,7 +338,7 @@ class App extends React.Component {
             return;
         }
 
-        this.setState({ showPostpone: false });
+        this.setState({ showPostpone: false, activeKey: null });
 
         this.state.tasks.forEach((task) => {
             if (task.id === key) {
@@ -400,13 +400,19 @@ class App extends React.Component {
     }
 
     onDailyRefresh = () => {
+        // Update date in add dialog if it was "today" - or else it will be in the past by default in worst case
+        let today = alignDate(new Date());
+        if (this.state.addDate.valueOf() < today.valueOf()) {
+            this.setState({ addDate: today });
+        }
+
         this.updateDates();
         this.updateFilterCounters(this.state.tasks);
         this.applyFilters(this.state.tasks, this.state.selectedFilter);
 
         this.startDailyRefresh();
 
-        console.log("daily refresh");
+        console.debug("Daily refresh");
     }
 
     // TODO: move?
