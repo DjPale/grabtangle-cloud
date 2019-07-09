@@ -92,15 +92,18 @@ class FirebaseStore {
     }
 
     updateTask = (task) => {
-        // A little bit hacky - task.dirty is only set when editing text and not postponing - which basically is what we want :P
-        const modified = task.dirty ? firebase.database.ServerValue.TIMESTAMP : null;
-
-        this.tasksRef.child(task.id).update({
+        let updatedTask = {
             topic: task.topic,
             action: task.action,
-            due: this.toDatabaseTimestamp(task.due),
-            modified: modified
-        });
+            due: this.toDatabaseTimestamp(task.due)
+        }
+
+        // A little bit hacky - task.dirty is only set when editing text and not postponing - which basically is what we want :P
+        if (task.dirty) {
+            updatedTask.modified = firebase.database.ServerValue.TIMESTAMP;
+        }
+
+        this.tasksRef.child(task.id).update(updatedTask);
     }
 
     signOut = () => {  
